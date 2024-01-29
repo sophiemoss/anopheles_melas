@@ -35,10 +35,10 @@ ls *.mkdup.bamstats | xargs -i -P1 sh -c 'head -1 {} | awk -F '"'"' '"'"' '"'"'{
 #ls *.bqsr.bamstats | xargs -i -P1 sh -c 'head -1 {} | awk -F '"'"' '"'"' '"'"'{print $1}'"'"'' > total_reads
 
 # Number of reads mapping to reference genome
-# Same principle, but extracting the first item on the 7th line
+# Same principle, but extracting the first item on the nth line
 
 #for some files
-ls *.mkdup.bamstats| xargs -i -P1 sh -c 'head -7 {} | tail -1 | awk -F '"'"' '"'"' '"'"'{print $1}'"'"'' > mapped_reads
+ls *.mkdup.bamstats| xargs -i -P1 sh -c 'head -5 {} | tail -1 | awk -F '"'"' '"'"' '"'"'{print $1}'"'"'' > mapped_reads
 
 # Look at coverage as a %
 # Step 1 - Create a list of all the sample names, you just want the prefix
