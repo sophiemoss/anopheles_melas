@@ -34,3 +34,6 @@ ls *.g.vcf.gz | sed 's/.g.vcf.gz//' > database_samples.txt #removed samples that
 
 bedtools makewindows -n 20 -g VectorBase-62_AmelasCM1001059_A_Genome.fasta.fai | awk '{print "melas_global_melas_bijagos_2019_"$1"_"$2+1"_"$3".genotyped.vcf.gz"}' > vcfs.txt
 bcftools concat -f vcfs.txt -Oz -o merged.vcf.gz --threads 20
+
+# cleanup step
+cat vcfs.txt | xargs rm
