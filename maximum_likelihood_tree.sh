@@ -2,37 +2,33 @@
 /mnt/storage11/sophie/bijagos_mosq_wgs/anopheles_tree
 
 # For mitochondrial tree
-# Align mitochondrial fasta files to each other, vcf2fasta script
-# muscle -in seqs.fa -out seqs.afa
-# use aliview to view, and trim the alignment 
-# raxml-ng --all --msa Anopheles_mito_2023_aligned.fa --model GTR --prefix Anopheles_mito_0823 --seed 706046 --bs-metric tbe --tree rand{1} --bs-trees 1000
-#  
-
-## First need to generate fasta file of mitochondrial sequences
-## Take unfilered vcf for gambiae-gambiae and melas-gambiae, combine, then filter, then use bcftools to subset for gene of interest.
-## source unfilered VCFs, both of these vcfs aligned to A_gam_P4_ensembl/Anopheles_gambiae.AgamP4.dna.toplevel.fa
-
-/mnt/storage11/sophie/bijagos_mosq_wgs/malariagen_wgs/gambiae_malariagen_GB_GM-ABC_Bijagos_merged.vcf.gz
-/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal.2023_07_25.genotyped.vcf.gz
-
-## make sure they are infexed
-## copy in the tbi files too because they take forever to index.
-
-## merge VCFs
-
-bcftools merge gambiae_malariagen_GB_GM-ABC_Bijagos_merged.vcf.gz melas_2019_plusglobal.2023_07_25.genotyped.vcf.gz -Oz -o bijagos_gambiae_melas_malariagen_GB_GM-ABC_alignedtoAgamP4_merged.vcf.gz
-
-## filter VCF using filter script
-## create the samples_40_10.txt file to make sure you are happy with which samples are going in
-
-bash /mnt/storage11/sophie/gitrepos/anopheles_melas/filter_combined_melas_gambiae_malariagen_vcf.sh
-
-## create just mitochondria VCF
-bcftools view -r Mt bijagos_gambiae_melas_malariagen_GB_GM-ABC_AgamP4_aligned_phased.vcf.gz -Oz -o mito_only_bijagos_gambiae_melas_malariagen_GB_GM-ABC_AgamP4_aligned_phased.vcf.gz
+# Created fasta files from the filtered melas and filtered gambiae vcfs, which contain bijagos samples (and some extra melas from ncbi)
 
 ## use vcf2fasta to make just fasta sequences. must input multisample vcf
 python /mnt/storage11/sophie/fastq2matrix/scripts/vcf2fasta_noiupac.py \
-        --vcf "VGSC_only_2022gambiae_phased.vcf.gz" \
+        --vcf "mito_only_FMISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss_40_mac_bi_snps_melas_2019_plusglobal.2023_07_25.genotyped.ann.vcf.gz" \
         --ref "/mnt/storage11/sophie/reference_genomes/A_gam_P4_ensembl/Mt_only_Anopheles_gambiae.AgamP4.dna.toplevel.fa" \
         --threads 10 \
         --whole-genome
+
+# melas fasta:
+/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/mito_sequences/mito_only_FMISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss_40_mac_bi_snps_melas_2019_plusglobal.2023_07_25.genotyped.ann.fa
+# gambiae fasta:
+/mnt/storage11/sophie/bijagos_mosq_wgs/2022_gambiae_fq2vcf_agamP4/gambiae_nov2022_genomicdb/gambiae_nov2022_genotypedvcf/gambiae_nov2022_filtering/mitochondrial_sequences/mito_only_F_MISSING_MAF_AC0_DP5_GQ20_gatk_miss40_mac_bi_snps_gambiae_nov2022.2023_07_05.genotyped.ann.fa
+
+# Align mitochondrial fasta files to each other
+# muscle -align seqs.fa -output seqs.afa
+
+muscle -align mito_only_F_MISSING_MAF_AC0_DP5_GQ20_gatk_miss40_mac_bi_snps_gambiae_nov2022.2023_07_05.genotyped.ann.fa -output 2022_gambiae_bijagos_mito.afa
+muscle -align mito_only_FMISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss_40_mac_bi_snps_melas_2019_plusglobal.2023_07_25.genotyped.ann.fa -output 2019_melas_global_bijagos_mito.afa
+
+# download alignments to local disk
+# use aliview to view, and trim the alignment 
+# reupload trimmed alignments to server
+
+# Bijagos only, trim and align in aliview, then run raxml-ng and plot
+raxml-ng --all --msa filename.fa --model GTR --prefix Anopheles_mito_0823 --seed 706046 --bs-metric tbe --tree rand{1} --bs-trees 1000
+
+# More species including outgroup
+raxml-ng --all --msa filename.fa --model GTR --prefix Anopheles_mito_0823 --seed 706046 --bs-metric tbe --tree rand{1} --bs-trees 1000
+
