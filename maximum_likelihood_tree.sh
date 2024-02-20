@@ -27,8 +27,8 @@ muscle -align mito_only_FMISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss_40_mac_bi_s
 # reupload trimmed alignments to server
 
 # Bijagos only, trim and align in aliview, then run raxml-ng and plot
-raxml-ng --all --msa filename.fa --model GTR --prefix Anopheles_mito_0823 --seed 706046 --bs-metric tbe --tree rand{1} --bs-trees 1000
+raxml-ng --all --msa Anopheles_mito_18022024_aligned_bijagos_with_global_melasv6.fa --model GTR --prefix Anopheles_mito_0823 --seed 706046 --bs-metric tbe --tree rand{1} --bs-trees 1000
 
 # More species including outgroup
-raxml-ng --all --msa filename.fa --model GTR --prefix Anopheles_mito_0823 --seed 706046 --bs-metric tbe --tree rand{1} --bs-trees 1000
+raxml-ng --all --msa Anopheles_mito_16022024_with_outgroup_aligned.fa --model GTR --prefix Anopheles_mito_0823 --seed 706046 --bs-metric tbe --tree rand{1} --bs-trees 1000
 
