@@ -128,15 +128,18 @@ tabix -p vcf F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_me
 
 # use beagle conda environment. mamba install beagle.
 conda activate beagle
-beagle -Xmx500g gt=F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz out=2019melasvcfphased_melasaligned
+beagle -Xmx500g gt=final_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz out=2019melasglobal_finalfiltered_gambiaealigned_phased
 
-tabix -p vcf 2019melasvcfphased_melasaligned.vcf.gz
+tabix -p vcf 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz
+
+bcftools query -l 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz
+bcftools index --stats 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz | cut -f1 | uniq
+
 ## Check the number of SNPs in the phased and unphased VCF files for one chromosome, these should be the same
-### WHEN I PHASE THE MELAS VCF IT REMOVES THE SNPS FROM THIS CONTIG. SOME KIND OF ISSUE HERE.
-# unphased melas: 34
-bcftools query -f '%CHROM\t%POS\n' F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz | awk '$1=="KI925006"' | wc -l
-# phased melas:0
-bcftools query -f '%CHROM\t%POS\n' 2019melasvcfphased_melasaligned.vcf.gz | awk '$1=="KI925006"' | wc -l
+# unphased melas SNPs in chr 2L 1729860
+bcftools query -f '%CHROM\t%POS\n' final_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz | awk '$1=="2L"' | wc -l
+# phased melas SNPs in chr 2L 1729860
+bcftools query -f '%CHROM\t%POS\n' 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz | awk '$1=="2L"' | wc -l
 
 # A Mile thesis filtering: criteria: QD < 5; FS > 60; ReadPosRankSum < −8; HRun > 4. I have adjusted QD above to be QD <5. GATK Standard is QD <2. 
 # Another phasing pipeline Delaneau et al 2023 - make use of read-backed and statistical phasing methods - seee Ag1000G 2017 paper.

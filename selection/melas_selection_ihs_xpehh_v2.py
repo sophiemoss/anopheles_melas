@@ -130,7 +130,7 @@ plt.savefig(filename)
 # show the plot (optional, could # this out)
 plt.show()
 
-# %% note that iHS has been calculated with unpolarized data, so only the magnitude of iHS
+# %% note that iHS has been calculated with unpolarized data using ~np.isnan, so only the magnitude of iHS
 # is informative, not the sign.
 
 # plot over the genome
@@ -171,34 +171,7 @@ fig = allel.fig_voight_painting(h_hit[:, h_gb_seg[idx_hit_max] == 1], index=flan
 fig.suptitle('Alternate allele', y=1);
 
 # %%
-# Display which iHS values are significant
-
-# Default red line for significance for iHS is 4. Default for XP-EHH is 5. Defauly for RSB is 5.
-# I am using iHS significanc of 5 because otherwise it is too many SNPs at 4.
-
-# Include red line in the plot showing significance
-
-### PLOT 1 INCORRECT ###
-
-# fig, ax = plt.subplots(figsize=(10, 3))
-# ax.plot(pos_gb_seg, np.abs(ihs_gb_std[0]), linestyle=' ', marker='o', mfc='none', mew=.5, mec='k')
-# ax.axhline(y=5, color='red', linestyle='--')
-# ax.set_xlabel('Genomic position (bp)')
-# ax.set_ylabel('$|IHS|$')
-# ax.set_ylim(0, 9)
-# ax.legend()
-# 
-# # Disable scientific notation for x-axis so that full numbers are printed
-# ax.get_xaxis().get_major_formatter().set_scientific(False)
-# ax.legend()
-# 
-# # save figure
-# timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-# filename = f'standardised_ihs_histogram_with_cutoff_{timestamp}.png'
-# plt.savefig(filename)
-# 
-### Need to fix plot, this is not plotting correctly across the genome, it's going from 0 upwards for each chromosome so they're overlapping
-# %% PLOT 2 ATTEMPT###
+# Plot iHS manhattan plot with all chromosomes
 
 # %% define chromosome lengths and colours
 # length of gb_seg_variants = 6785669, it is a numpy.ndarray
@@ -228,54 +201,70 @@ for chrom, length in chromosome_lengths.items():
     cumulative_lengths[chrom] = cumulative_length
     cumulative_length += length
 
-# %% Define colors for each chromosome
-chromosome_colors = {
-    '2L': 'red',
-    '2R': 'blue',
-    '3L': 'green',
-    '3R': 'orange',
-    'anop_mito': 'purple',
-    'anop_X': 'cyan'
-}
-
 # %% Assuming `pos`, `chromosomes`, and `ihs_gb_std[0]` arrays are already defined and aligned
 # Define the threshold
+import matplotlib.patches as mpatches
+
 threshold = 5
 
 # Set up the plot
 fig, ax = plt.subplots(figsize=(10, 6))
 
 # Define colors for each chromosome (for illustration)
-chromosome_colors = {
-    '2L': 'red', '2R': 'blue', '3L': 'green', '3R': 'orange', 'anop_mito': 'purple', 'anop_X': 'cyan'
+chromosome_colours = {
+    '2L': '#3d348b', '2R': '#f18701', '3L': '#f7b801', '3R': '#7678ed', 'anop_mito': '#f35b04', 'anop_X': '#119DA4'
 }
+
+# Create a list to hold the legend patches
+legend_patches=[]
 
 # Filter out 'Y_unplaced' or any other chromosomes not in your chromosome_lengths dictionary
 filtered_chroms = [chrom for chrom in sorted(set(chrom_gb_seg)) if chrom in chromosome_lengths]
 
 # Iterate through each chromosome to plot its variants
 for chrom in filtered_chroms:
+    # Create mask for the current chromosome
     mask = chrom_gb_seg == chrom
+    
+    # Apply the chromosome mask and filter out NaN values simultaneously
     chrom_positions = pos_gb_seg[mask]
     chrom_ihs_values = ihs_gb_std[0][mask]
-    adjusted_positions = chrom_positions + cumulative_lengths[chrom]
+    non_nan_mask = ~np.isnan(chrom_ihs_values)
+    
+    # Make sure to apply the non-NaN mask to both the positions and iHS values
+    chrom_positions_no_nan = chrom_positions[non_nan_mask]
+    chrom_ihs_values_no_nan = chrom_ihs_values[non_nan_mask]
+    
+    # Adjust positions for visualization if needed
+    adjusted_positions = chrom_positions_no_nan + cumulative_lengths[chrom]
 
-    below_threshold_mask = chrom_ihs_values < threshold
-    above_threshold_mask = chrom_ihs_values >= threshold
+    # Now create threshold masks based on the non-NaN iHS values
+    below_threshold_mask = chrom_ihs_values_no_nan < threshold
+    above_threshold_mask = chrom_ihs_values_no_nan >= threshold
+    
+    # Plot points below and above the threshold
+    ax.scatter(adjusted_positions[below_threshold_mask], 
+               chrom_ihs_values_no_nan[below_threshold_mask], 
+               color=chromosome_colours[chrom], alpha=0.5, s=10)
+    ax.scatter(adjusted_positions[above_threshold_mask], 
+               chrom_ihs_values_no_nan[above_threshold_mask], 
+               color=chromosome_colours[chrom], alpha=1.0, s=10)
+    patch = mpatches.Patch(color=chromosome_colours[chrom], label=chrom)
+    legend_patches.append(patch)
 
-    ax.scatter(adjusted_positions[below_threshold_mask], chrom_ihs_values[below_threshold_mask], color=chromosome_colors[chrom], alpha=0.5, s=10)
-    ax.scatter(adjusted_positions[above_threshold_mask], chrom_ihs_values[above_threshold_mask], color=chromosome_colors[chrom], alpha=1.0, s=10)
+legend_patches.append(mpatches.Patch(color='black', label='Significance Threshold'))
+ax.legend(handles=legend_patches, title='Chromosome', bbox_to_anchor=(1.05, 1), loc='upper left')
 
-ax.set_xlabel('Adjusted Genomic Position')
-ax.set_ylabel('$|IHS|$')
-ax.axhline(y=threshold, color='black', linestyle='--', label='Significance Threshold')
-ax.set_ylim(-2, max(ihs_gb_std[0]) + 1)
-ax.legend(title='Chromosome', bbox_to_anchor=(1.05, 1), loc='upper left')
+ax.set_xlabel('Genomic Position (bp)')
+ax.set_ylabel('$|iHS|$')
+ax.axhline(y=threshold, color='black', linestyle='--')
 plt.tight_layout()
 plt.show()
 
 
-############
+# Now need to work out the p-values for these iHS scores, and log transform them, and plot.
+
+
 
 
 
