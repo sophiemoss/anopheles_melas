@@ -170,10 +170,8 @@ fig.suptitle('Reference allele', y=1);
 fig = allel.fig_voight_painting(h_hit[:, h_gb_seg[idx_hit_max] == 1], index=flank_size, height_factor=0.02)
 fig.suptitle('Alternate allele', y=1);
 
-# %%
-# Plot iHS manhattan plot with all chromosomes
+# %% Plot iHS manhattan plot with all chromosomes
 
-# define chromosome lengths and colours
 # length of gb_seg_variants = 6785669, it is a numpy.ndarray
 chromosomes = callset['variants/CHROM'][:]
 chrom_gb_seg = chromosomes.compress(gb_seg_variants, axis = 0)
@@ -184,7 +182,7 @@ pos_gb_seg = pos.compress(gb_seg_variants, axis=0)
 pos_gb_seg
 # length of pos_gb_seg = 5673213, it is a numpy.ndarray
 
-# 
+# define chromosome lengths and colours 
 chromosome_lengths = {
     '2L': 49364325,
     '2R': 61545105,
@@ -201,7 +199,8 @@ for chrom, length in chromosome_lengths.items():
     cumulative_lengths[chrom] = cumulative_length
     cumulative_length += length
 
-# %% Assuming `pos`, `chromosomes`, and `ihs_gb_std[0]` arrays are already defined and aligned
+# %% Plot iHS
+# `pos`, `chromosomes`, and `ihs_gb_std[0]` arrays are already defined and aligned
 # Define the threshold
 import matplotlib.patches as mpatches
 
@@ -245,7 +244,7 @@ for chrom in filtered_chroms:
     # Plot points below and above the threshold
     ax.scatter(adjusted_positions[below_threshold_mask], 
                chrom_ihs_values_no_nan[below_threshold_mask], 
-               color=chromosome_colours[chrom], alpha=0.5, s=10)
+               color=chromosome_colours[chrom], alpha=0.1, s=10)
     ax.scatter(adjusted_positions[above_threshold_mask], 
                chrom_ihs_values_no_nan[above_threshold_mask], 
                color=chromosome_colours[chrom], alpha=1.0, s=10)
@@ -262,7 +261,8 @@ plt.tight_layout()
 plt.show()
 
 
-# Compute empirical p-values, then can log transform these and plot.
+# %% Compute empirical p-values, then can log transform these and plot.
+# the standardised ihs values are saved in ihs_gb_std[0]
 
 # write function
 def calculate_empirical_p_value(sorted_values, observed_value):
@@ -285,11 +285,61 @@ def calculate_empirical_p_value(sorted_values, observed_value):
 
     return p_value
 
+# %% Filter out NaN values from the original iHS scores and keep their original positions
+vals = ihs_gb_std[0]
+mask_non_nan = ~np.isnan(vals)
+vals_withoutnan = vals[mask_non_nan]
+pos_withoutnan = pos_gb_seg[mask_non_nan]
+chrom_withoutnan = chrom_gb_seg[mask_non_nan]
+
+# %% Calculate p-values for non-NaN iHS scores
+sorted_ihs = np.sort(vals_withoutnan)
+pvals = [calculate_empirical_p_value(sorted_ihs, ihs) for ihs in vals_withoutnan]
+
+# %% save pvals for next time
+pvals_df = pd.DataFrame(pvals, columns=['p_value'])
+pvals_df.to_csv('pvals.csv', index=False)
+
+# %% load pvals back in
+pvals_loaded_df = pd.read_csv('pvals.csv')
+pvals_loaded = pvals_loaded_df['p_value'].values
+
+# %% save pvals_loaded as pvals so don't have to change the rest of the script
+pvals = pvals_loaded
+
+# %% Adjust p-values to avoid log10(0)
+adjusted_pvals = np.maximum(pvals, 1e-10)
+
+# %% Taking the log10
+log_pvals = np.log10(adjusted_pvals)
+
+# %% Define colors for each chromosome (for illustration)
+chromosome_colours = {
+    '2L': '#3d348b', '2R': '#f18701', '3L': '#f7b801', '3R': '#7678ed', 'anop_mito': '#f35b04', 'anop_X': '#119DA4'
+}
+
+# %% Plotting
+plt.figure(figsize=(10, 6))
+
+# Iterate through each chromosome to plot its variants with colors
+for chrom in sorted(set(chrom_withoutnan)):
+    mask = chrom_withoutnan == chrom
+    plt.scatter(pos_withoutnan[mask], log_pvals[mask], color=chromosome_colours[chrom], alpha=0.6, label=chrom)
+
+plt.xlabel('Genomic Position (bp)')
+plt.ylabel('-log10(P-value)')
+plt.title('Manhattan Plot of iHS Scores Colored by Chromosome')
+plt.grid(True)
+
+# Optional: Create a legend if you want to identify chromosomes by color
+plt.legend(title='Chromosome', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+plt.tight_layout()
+plt.show()
 
 
-vals = [1,1,3,10,8,5,2,7,1,9]
-sorted_values = sorted(vals)
-pvals = [calculate_empirical_p_value(sorted_values,value) for value in sorted_values])
+
+
 
 
 
@@ -364,6 +414,21 @@ with open("gb_ihs_positions_above_threshold_5_gff_annotated.txt", "w") as outfil
             
             # Write to outfile
             outfile.write(f"{chromosome}\t{position}\t{ihs_value}\t{','.join(gene_ids)}\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # %% ########### Cross-population extended haplotype homozygosity (XPEHH) ###########
 

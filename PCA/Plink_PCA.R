@@ -6,7 +6,7 @@ showtext_auto()
 library(viridis)
 
 workdir <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/pca" # Working directory with plink files
-prefix <- "3R_only_melas_plusglobal" # Prefix for plink files
+prefix <- "X_only_melas_plusglobal" # Prefix for plink files
 metadata <- "metadata_melasplusglobal.csv" # File path to metadata
 
 calc_variance_explained <- function(pc_points) {
@@ -44,15 +44,15 @@ colnames(df) <- gsub("V", "PC", colnames(df))
 color_by <- "country" # specify if coloured by region or country
 
 # Graph with PC1 an PC2
-png("3R_only_bu1003removed_ggplot_PCA_melas_plus_global.png") # Save to PNG file
-ggplot(data = df, aes(x = PC1, y = PC2,
-       color = !!sym(color_by))) +
-    geom_point() +
-    labs(x = paste0("PC1", " (", vars["PC1"], "%)"),
-            y = paste0("PC2", " (", vars["PC2"], "%)")) +
-    theme_classic() +
-    theme(legend.position = "bottom")
-dev.off()
+#png("3R_only_bu1003removed_ggplot_PCA_melas_plus_global.png") # Save to PNG file
+#ggplot(data = df, aes(x = PC1, y = PC2,
+#       color = !!sym(color_by))) +
+#    geom_point() +
+#    labs(x = paste0("PC1", " (", vars["PC1"], "%)"),
+#            y = paste0("PC2", " (", vars["PC2"], "%)")) +
+#    theme_classic() +
+#    theme(legend.position = "bottom")
+#dev.off()
 
 
 # changing colour scheme to be with R colour brewer
@@ -67,14 +67,14 @@ dev.off()
 #
 ## changing colour scheme to be with viridis, with color_by being a discrete variable
 #
-my_colours <- c("Cameroon" = "#d17c1b", "Guinea-Bissau" = "#126cfe", "The Gambia" = "#1bb53a")
+my_colours <- c("Cameroon" = "#7678ed", "Guinea-Bissau" = "#3d348b", "The Gambia" = "#f7b801")
 
-png("colors_ggplot_PCA_melas_plus_global.png") 
+png("X_only_PCA_melas_plus_global.png") 
 ggplot(data = df, aes(x = PC1, y = PC2, color = !!sym(color_by))) +
     geom_point() +
-    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)")) +
+    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "X chromosome") +
     scale_color_manual(values = my_colours) + 
     theme_classic() +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))
 dev.off()
 #
