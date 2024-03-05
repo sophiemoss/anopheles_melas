@@ -29,7 +29,7 @@ conda create -n radmix r-essentials r-base
 install.packages(c("unikn", "countrycode", "optparse"))
 setwd("/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/admixture")
 
-Rscript /mnt/storage11/sophie/gitrepos/anopheles_melas/admixture/generate_admix_barplot.R \
+Rscript /mnt/storage11/sophie/gitrepos/anopheles_melas/admixture/generate_admix_barplot_colours.R \
 -d /mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/admixture \
 --prefix melas_global_gambiaealigned \
 --kval 4 \

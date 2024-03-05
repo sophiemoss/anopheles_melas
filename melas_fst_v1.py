@@ -1,7 +1,8 @@
 ## scikitallel_workflow
-# /mnt/storage11/sophie/gitrepos/anophelesmelas_popgen/scikit_allel_fst_calculate_and_plot_v2.py
+# /mnt/storage11/sophie/gitrepos/anopheles_melas/melas_fst_v1.py
 # run this script using
-# python scikit_allel_fst_calculate_and_plot.py /path/to/working/directory /path/to/callset.zarr chromosomename
+# python /mnt/storage11/sophie/gitrepos/anopheles_melas/melas_fst_v1.py /pathway/to/dir /pathway/to/zarr chromosomename
+# python /mnt/storage11/sophie/gitrepos/anopheles_melas/melas_fst_v1.py . 2019melasglobal_finalfiltered_gambiaealigned_phased.zarr 2L
 # You make the zarr file with allel.vcf_to_zarr('phased_vcf_file_name.vcf.gz', 'output_name.zarr', fields='*', overwrite=True)
 
 # allel.vcf_to_zarr('2019_melas_phased.vcf.gz', '2019_melas_phased.zarr', fields='*', overwrite=True)
@@ -109,7 +110,7 @@ def main(args):
     subpoplist = [list(subpops['group1']),
                     list(subpops['group2'])]
 
-    fst, windows, counts = allel.windowed_weir_cockerham_fst(pos, genotype, subpoplist, size=500)
+    fst, windows, counts = allel.windowed_weir_cockerham_fst(pos, genotype, subpoplist, size=1000)
 
     # use the per-block average Fst as the Y coordinate
     y = fst
@@ -145,19 +146,19 @@ def main(args):
     print("Corresponding Window (Genomic bps):", max_window)
 
     # %% save Fst values over a certain threshold
-    
     fst_threshold = 0.9
-    fst_over_threshold = [(window,value) for window, value in zip(windows,fst) if value >= fst_threshold]
+    fst_over_threshold = [(window, value) for window, value in zip(windows, fst) if value >= fst_threshold]
 
     if fst_over_threshold:
-        with open('fst_greater_than_0.9_{pop1}_{pop2}_window_size_100000.txt', 'w') as fst_file:
-            fst_file.write("Window (Genomic bps)\FST Value\n")
+    # Dynamically include fst_threshold in the filename
+        filename = f'fst_greater_than_{fst_threshold}_{pop1}_{pop2}_{args.chromosome}_window_size_1000.txt'
+        with open(filename, 'w') as fst_file:
+            fst_file.write("Window (Genomic bps)\tFST Value\n")
             for window, value in fst_over_threshold:
                 fst_file.write(f"{window[0]}-{window[1]}\t{value}\n")
-        print ("Saved FST values over 0.6 to fst_greater_than_0.9.txt")
+        print(f"Saved FST values over {fst_threshold} to {filename}")
     else:
-        print("No FST values over the threshold were found")
-
+        print(f"No FST values over the threshold of {fst_threshold} were found")
 
     # %% Calculte fst with blen = 1 so that fst is calculated for every variant. Note this takes a bit longer to run.
     # PLOT FST using windowed weird and cockerham fst - try this, not sure if x = pos
@@ -225,6 +226,21 @@ def main(args):
     else:
         print("No individual variant FST values over the threshold (FST >= 0.9) were found.")
 
+        fst_threshold = 0.9
+        fst_over_threshold = [(pos[i], value) for i, value in enumerate(fst_pervariant) if value >= fst_threshold]
+
+        if fst_over_threshold:
+            # Dynamically generate filename based on fst_threshold
+            filename = f'fst_individual_variants_greater_than_{fst_threshold}.txt'
+            with open(filename, 'w') as fst_file:
+                fst_file.write("Variant (Genomic bps)\tFST Value\n")
+                for variant, value in fst_over_threshold:
+                    fst_file.write(f"{variant}\t{value}\n")
+            # Dynamically include fst_threshold in the print statement
+            print(f"Saved individual variant FST values over {fst_threshold} to {filename}")
+        else:
+            # Dynamically include fst_threshold in the print statement
+            print(f"No individual variant FST values over the threshold (FST >= {fst_threshold}) were found.")
 
 # arguments
 
