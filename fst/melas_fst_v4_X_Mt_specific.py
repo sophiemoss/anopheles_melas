@@ -8,6 +8,8 @@
 # allel.vcf_to_zarr('2019_melas_phased.vcf.gz', '2019_melas_phased.zarr', fields='*', overwrite=True)
 # python /mnt/storage11/sophie/gitrepos/anophelesmelas_popgen/scikit_allel_fst_calculate_and_plot_melasPCAinvestigation.py /mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas2019plusglobal_vcf_filtering 2019_melas_phased.zarr 2L
 
+#### This script is altered specifically for Mt and X becuase the names in the gff and the zarr file are different. Use the zarr file chr name for the command, then change this line [chromosome_for_gff = chromosome_arg.replace("anop_mito","Mt")] to determine what chromosome name should be found in the gff file for the annotation
+
 ######################## CALCULATING FST #########################
 # %% adapted jupyter notebook from http://alimanfoo.github.io/2015/09/21/estimating-fst.html
 
@@ -37,15 +39,14 @@ def main(args):
     print("Callset file:", args.callset_file)
 
     # Filter by chromosome
-    chromosome_name = args.chromosome if args.chromosome.startswith('anop_') else f'anop_{args.chromosome}'
-    # line added for X and MT chromosomes
-    chromosome_filter = callset['variants/CHROM'][:] == args.chromosome
+    chromosome_arg = args.chromosome
+    chromosome_filter = callset['variants/CHROM'][:] == chromosome_arg
     pos_all = callset['variants/POS'][np.where(chromosome_filter)[0]]
     print("Chromosome being analysed:", args.chromosome)
 
     # Path to your GFF3 file
     gff_file_path = '/mnt/storage11/sophie/reference_genomes/A_gam_P4_ensembl/Anopheles_gambiae.AgamP4.56.chr.gff3'
-
+    chromosome_for_gff = chromosome_arg.replace("anop_mito","Mt")
     # Read the GFF3 file
     gff_df = pd.read_csv(
         '/mnt/storage11/sophie/reference_genomes/A_gam_P4_ensembl/Anopheles_gambiae.AgamP4.56.chr.gff3',
@@ -209,6 +210,17 @@ def main(args):
     print("Maximum FST Value:", max_value)
     print("Corresponding Window (Genomic bps):", max_window)
 
+    # %% Print the mean and median Fst value for the chromosome
+
+    # Filter the array to include only non-negative (positive and zero) and non-NaN values
+    filtered_array_temp = fst[(~np.isnan(fst)) & (fst > 0)]
+    # Calculate the mean of the filtered array
+    mean_value = np.mean(filtered_array_temp)
+    print("Mean fst value:", mean_value)
+    # Calculate the median of the filtered array
+    median_value = np.median(filtered_array_temp)
+    print("Median fst value:", median_value)
+
     # %% save Fst values over a certain threshold
     fst_threshold = 0.9
     fst_over_threshold = [(window, value) for window, value in zip(windows, fst) if value >= fst_threshold]
@@ -218,83 +230,83 @@ def main(args):
         with open(filename, 'w') as fst_file:
             fst_file.write("Window (Genomic bps)\tFST Value\tAnnotations\n")
             for window, value in fst_over_threshold:
-                annotations = find_annotations_for_window(window, gff_df, args.chromosome)
+                annotations = find_annotations_for_window(window, gff_df, chromosome_for_gff)
                 fst_file.write(f"{window[0]}-{window[1]}\t{value}\t{annotations}\n")
         print(f"Saved FST values over {fst_threshold} to {filename} with annotations")
     else:
         print(f"No FST values over the threshold of {fst_threshold} were found")
 
-    # %% Calculte fst with blen = 1 so that fst is calculated for every variant. Note this takes a bit longer to run.
-    # PLOT FST using windowed weird and cockerham fst - try this, not sure if x = pos
-    print("Calculating fst with blen = 1, this takes a bit longer to run as fst is being calculating for each variant instead of in windows")
-
-    subpoplist = [list(subpops['group1']),
-                    list(subpops['group2'])]
-
-
-    # fst, se, vb, _ = allel.blockwise_hudson_fst(ac1, ac2, blen=blen)
-    a, b, c = allel.weir_cockerham_fst(genotype, subpoplist, blen=1)
-
-    # estimate Fst for each variant and each allele individually
-    # fst = a / (a + b + c)
-
-    # or estimate Fst for each variant individually, averaging over alleles
-    print("Estimating Fst for each variant individually, averaging over alleles")
-
-    fst_pervariant = (np.sum(a, axis=1) /
-        (np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1)))
-
-    # use the per-block average Fst as the Y coordinate
-    print("Plotting fst with blen = 1")
-
-    y = fst_pervariant
-
-    x = pos
-
-    # plot
-    fig, ax = plt.subplots(figsize=(10, 4))
-    sns.despine(ax=ax, offset=5)
-    ax.plot(x, y, 'k-', lw=.5)
-    ax.set_ylabel('$F_{ST}$')
-    ax.set_xlabel(f'Chromosome {args.chromosome} position (bp)')
-    ax.set_xlim(0, pos.max())
-
-    print(len(x),len(y))
-
-    # save fst figure
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    filename = f'fst_w&c_blen=1_{pop1}_{pop2}_{timestamp}_{args.chromosome}_v2.png'
-    plt.savefig(filename)
-    print("Saving blen = 1 Fst plot - {args.chromosome}")
-
-    # Here you can see that fst values are much higher when calculated for each position individually
-
-    print("Inspecting Fst plot for maximum value")
-    max_value = max(fst_pervariant)
-    max_index = np.argmax(fst_pervariant)
-    #max_window = windows[max_index]
-
-    print("Maximum FST Value:", max_value)
-    print("Maximum index:", max_index)
-
-    # Filter FST values greater than or equal to 0.9
-    fst_threshold = 0.9
-    fst_over_threshold = [(pos[i], value) for i, value in enumerate(fst_pervariant) if value >= fst_threshold]
-
-    if fst_over_threshold:
-        # Dynamically generate filename based on fst_threshold
-        filename = f'fst_individual_variants_greater_than_{fst_threshold}_{args.chromosome}_blen1_v2_ann.txt'
-        with open(filename, 'w') as fst_file:
-            fst_file.write("Variant (Genomic bps)\tFST Value\n")
-            for variant, value in fst_over_threshold:
-                annotations = find_annotations_for_window(window, gff_df, args.chromosome)
-                fst_file.write(f"{window[0]}-{window[1]}\t{value}\t{annotations}\n")
-        # Dynamically include fst_threshold in the print statement
-        print(f"Saved individual variant FST values over {fst_threshold} to {filename} with annotations")
-    else:
-        # Dynamically include fst_threshold in the print statement
-        print(f"No individual variant FST values over the threshold (FST >= {fst_threshold}) were found.")
-
+    ## %% Calculte fst with blen = 1 so that fst is calculated for every variant. Note this takes a bit longer to run.
+    ## PLOT FST using windowed weird and cockerham fst - try this, not sure if x = pos
+    #print("Calculating fst with blen = 1, this takes a bit longer to run as fst is being calculating for each variant instead of in windows")
+#
+    #subpoplist = [list(subpops['group1']),
+    #                list(subpops['group2'])]
+#
+#
+    ## fst, se, vb, _ = allel.blockwise_hudson_fst(ac1, ac2, blen=blen)
+    #a, b, c = allel.weir_cockerham_fst(genotype, subpoplist, blen=1)
+#
+    ## estimate Fst for each variant and each allele individually
+    ## fst = a / (a + b + c)
+#
+    ## or estimate Fst for each variant individually, averaging over alleles
+    #print("Estimating Fst for each variant individually, averaging over alleles")
+#
+    #fst_pervariant = (np.sum(a, axis=1) /
+    #    (np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1)))
+#
+    ## use the per-block average Fst as the Y coordinate
+    #print("Plotting fst with blen = 1")
+#
+    #y = fst_pervariant
+#
+    #x = pos
+#
+    ## plot
+    #fig, ax = plt.subplots(figsize=(10, 4))
+    #sns.despine(ax=ax, offset=5)
+    #ax.plot(x, y, 'k-', lw=.5)
+    #ax.set_ylabel('$F_{ST}$')
+    #ax.set_xlabel(f'Chromosome {args.chromosome} position (bp)')
+    #ax.set_xlim(0, pos.max())
+#
+    #print(len(x),len(y))
+#
+    ## save fst figure
+    #timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    #filename = f'fst_w&c_blen=1_{pop1}_{pop2}_{timestamp}_{args.chromosome}_v2.png'
+    #plt.savefig(filename)
+    #print("Saving blen = 1 Fst plot - {args.chromosome}")
+#
+    ## Here you can see that fst values are much higher when calculated for each position individually
+#
+    #print("Inspecting Fst plot for maximum value")
+    #max_value = max(fst_pervariant)
+    #max_index = np.argmax(fst_pervariant)
+    ##max_window = windows[max_index]
+#
+    #print("Maximum FST Value:", max_value)
+    #print("Maximum index:", max_index)
+#
+    ## Filter FST values greater than or equal to 0.6
+    #fst_threshold = 0.6
+    #fst_over_threshold = [(pos[i], value) for i, value in enumerate(fst_pervariant) if value >= fst_threshold]
+#
+    #if fst_over_threshold:
+    #    # Dynamically generate filename based on fst_threshold
+    #    filename = f'fst_individual_variants_greater_than_{fst_threshold}_{args.chromosome}_blen1_v2_ann.txt'
+    #    with open(filename, 'w') as fst_file:
+    #        fst_file.write("Variant (Genomic bps)\tFST Value\n")
+    #        for variant, value in fst_over_threshold:
+    #            annotations = find_annotations_for_window(window, gff_df, chromosome_for_gff)
+    #            fst_file.write(f"{window[0]}-{window[1]}\t{value}\t{annotations}\n")
+    #    # Dynamically include fst_threshold in the print statement
+    #    print(f"Saved individual variant FST values over {fst_threshold} to {filename} with annotations")
+    #else:
+    #    # Dynamically include fst_threshold in the print statement
+    #    print(f"No individual variant FST values over the threshold (FST >= {fst_threshold}) were found.")
+#
 # arguments
 
 if __name__ == "__main__":

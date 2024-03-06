@@ -16,47 +16,50 @@ tabix -p vcf pca_filteredvcf_renamedchr_melas2019plusglobal.vcf.gz
 
 zgrep -v '^##' pca_filteredvcf_renamedchr_melas2019plusglobal.vcf.gz | cut -f1 | sort | uniq > unique_chromosomes.txt
 
-# remove outlier sample from vcf
+# remove outlier smaples and redo filter 6
 bcftools view -s ^bu1003_Combined pca_filteredvcf_renamedchr_melas2019plusglobal.vcf.gz -Oz -o pca_filteredvcf_bu1003removed_renamedchr_melas2019plusglobal.vcf.gz
 tabix -p vcf pca_filteredvcf_bu1003removed_renamedchr_melas2019plusglobal.vcf.gz
 # run filter 6 again to keep only variants
 bcftools filter -e 'F_MISSING > 0.2 || MAF <= 0.01' pca_filteredvcf_bu1003removed_renamedchr_melas2019plusglobal.vcf.gz -Oz -o pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
 tabix -p vcf pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
+## extra cameroon sample also removed and filter 6 run again:
+
+final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz
 
 ## Create a distance matrix for PCA with melas plus global samples
-plink --vcf pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out wholgenome_melas_plusglobal --threads 6 --allow-extra-chr
+plink --vcf final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out wholgenome_melas_plusglobal --threads 6 --allow-extra-chr
 
 ## now create for every chromosome
 ## using just the mitochondria
 ## create mitochondria only vcf using bcftools, then use plink to make distance matrix
-bcftools view -r anop_mito pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz -Oz -o mito_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-tabix -p vcf mito_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-plink --vcf mito_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out mito_only_melas_plusglobal --threads 6 --allow-extra-chr
+bcftools view -r anop_mito final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz -Oz -o mito_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+tabix -p vcf mito_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+plink --vcf mito_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out mito_only_melas_plusglobal --threads 6 --allow-extra-chr
 
 ## just the X chromosome
-bcftools view -r anop_X pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz -Oz -o X_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-tabix -p vcf X_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-plink --vcf X_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out X_only_melas_plusglobal --threads 6 --allow-extra-chr
+bcftools view -r anop_X final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz -Oz -o X_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+tabix -p vcf X_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+plink --vcf X_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out X_only_melas_plusglobal --threads 6 --allow-extra-chr
 
 ## just the 2L chromosome
-bcftools view -r 2L pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz -Oz -o 2L_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-tabix -p vcf 2L_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-plink --vcf 2L_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out 2L_only_melas_plusglobal --threads 6 --allow-extra-chr
+bcftools view -r 2L final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz -Oz -o 2L_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+tabix -p vcf 2L_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+plink --vcf 2L_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out 2L_only_melas_plusglobal --threads 6 --allow-extra-chr
 
 ## just the 2R chromosome
-bcftools view -r 2R pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz -Oz -o 2R_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-tabix -p vcf 2R_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-plink --vcf 2R_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out 2R_only_melas_plusglobal --threads 6 --allow-extra-chr
+bcftools view -r 2R final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz -Oz -o 2R_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+tabix -p vcf 2R_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+plink --vcf 2R_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out 2R_only_melas_plusglobal --threads 6 --allow-extra-chr
 
 ## just the 3L chromosome
-bcftools view -r 3L pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz -Oz -o 3L_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-tabix -p vcf 3L_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-plink --vcf 3L_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out 3L_only_melas_plusglobal --threads 6 --allow-extra-chr
+bcftools view -r 3L final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz -Oz -o 3L_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+tabix -p vcf 3L_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+plink --vcf 3L_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out 3L_only_melas_plusglobal --threads 6 --allow-extra-chr
 
 ## just the 3R chromosome
-bcftools view -r 3R pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz -Oz -o 3R_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-tabix -p vcf 3R_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz
-plink --vcf 3R_only_pca_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out 3R_only_melas_plusglobal --threads 6 --allow-extra-chr
+bcftools view -r 3R final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz -Oz -o 3R_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+tabix -p vcf 3R_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+plink --vcf 3R_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz --distance square --double-id --out 3R_only_melas_plusglobal --threads 6 --allow-extra-chr
 
 
 ### Specific gene ###

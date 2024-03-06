@@ -8,17 +8,17 @@ bcftools query -l yourfile.vcf.gz
 
 # STEP 2 CONVERT CHR NAMES IN VCF TO INTEGERS
 
-zgrep -v "^#" final_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz | cut -f1 | sort | uniq
+zgrep -v "^#" final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz | cut -f1 | sort | uniq
 
-zcat final_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz | awk 'BEGIN{OFS=FS="\t"} /^#/ {print; next} {gsub(/^2L$/, "1", $1); gsub(/^2R$/, "2", $1); gsub(/^3L$/, "3", $1); gsub(/^3R$/, "4", $1); gsub(/^anop_mito$/, "5", $1); gsub(/^anop_X$/, "6", $1); gsub(/^Y_unplaced$/, "7", $1); print}' | bgzip > admixture_modified.vcf.gz
+zcat final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz | awk 'BEGIN{OFS=FS="\t"} /^#/ {print; next} {gsub(/^2L$/, "1", $1); gsub(/^2R$/, "2", $1); gsub(/^3L$/, "3", $1); gsub(/^3R$/, "4", $1); gsub(/^anop_mito$/, "5", $1); gsub(/^anop_X$/, "6", $1); gsub(/^Y_unplaced$/, "7", $1); print}' | bgzip > admixture_modified_v2.vcf.gz
 
-tabix -p vcf admixture_modified.vcf.gz
-zgrep -v "^#" admixture_modified.vcf.gz | cut -f1 | sort | uniq
-bcftools query -l admixture_modified.vcf.gz
+tabix -p vcf admixture_modified_v2.vcf.gz
+zgrep -v "^#" admixture_modified_v2.vcf.gz | cut -f1 | sort | uniq
+bcftools query -l admixture_modified_v2.vcf.gz
 
 # STEP 3 MAKE BED AND BIM FILES
 
-plink --vcf admixture_modified.vcf.gz --set-missing-var-ids @:# --keep-allele-order --const-fid --allow-extra-chr --make-bed --out melas_global_gambiaealigned
+plink --vcf admixture_modified_v2.vcf.gz --set-missing-var-ids @:# --keep-allele-order --const-fid --allow-extra-chr --make-bed --out melas_global_gambiaealigned
 
 # STEP 4 RUN ADMIXTURE
 

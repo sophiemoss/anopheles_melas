@@ -6,7 +6,7 @@ showtext_auto()
 library(viridis)
 
 workdir <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/pca" # Working directory with plink files
-prefix <- "X_only_melas_plusglobal" # Prefix for plink files
+prefix <- "mito_only_melas_plusglobal" # Prefix for plink files
 metadata <- "metadata_melasplusglobal.csv" # File path to metadata
 
 calc_variance_explained <- function(pc_points) {
@@ -69,10 +69,10 @@ color_by <- "country" # specify if coloured by region or country
 #
 my_colours <- c("Cameroon" = "#7678ed", "Guinea-Bissau" = "#3d348b", "The Gambia" = "#f7b801")
 
-png("X_only_PCA_melas_plus_global.png") 
+png("mito_only_PCA_melas_plus_global.png") 
 ggplot(data = df, aes(x = PC1, y = PC2, color = !!sym(color_by))) +
     geom_point() +
-    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "X chromosome") +
+    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "Mitochondria") +
     scale_color_manual(values = my_colours) + 
     theme_classic() +
     theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))

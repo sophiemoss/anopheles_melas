@@ -120,6 +120,12 @@ tabix -p vcf F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_me
 
 # Filtering complete!
 
+# removed two samples and then remade vcf, and re-did the above filter (F6)
+
+tabix -p vcf final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+
+bcftools view final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz  | grep -v "^#" | wc -l
+
 ########## PHASE VCF FILE ###########
 
 # Phase the filtered vcf using beagle, https://faculty.washington.edu/browning/beagle/beagle_5.2_13Oct21.pdf
@@ -128,7 +134,7 @@ tabix -p vcf F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_me
 
 # use beagle conda environment. mamba install beagle.
 conda activate beagle
-beagle -Xmx500g gt=final_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz out=2019melasglobal_finalfiltered_gambiaealigned_phased
+beagle -Xmx500g gt=final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz out=2019melasglobal_finalfiltered_gambiaealigned_phased
 
 tabix -p vcf 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz
 
@@ -136,9 +142,9 @@ bcftools query -l 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz
 bcftools index --stats 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz | cut -f1 | uniq
 
 ## Check the number of SNPs in the phased and unphased VCF files for one chromosome, these should be the same
-# unphased melas SNPs in chr 2L 1729860
-bcftools query -f '%CHROM\t%POS\n' final_filteredvcf_bu1003removed_F6_renamedchr_melas2019plusglobal.vcf.gz | awk '$1=="2L"' | wc -l
-# phased melas SNPs in chr 2L 1729860
+# unphased melas SNPs in chr 2L 1725502
+bcftools query -f '%CHROM\t%POS\n' final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz | awk '$1=="2L"' | wc -l
+# phased melas SNPs in chr 2L 1725502
 bcftools query -f '%CHROM\t%POS\n' 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz | awk '$1=="2L"' | wc -l
 
 # A Mile thesis filtering: criteria: QD < 5; FS > 60; ReadPosRankSum < −8; HRun > 4. I have adjusted QD above to be QD <5. GATK Standard is QD <2. 
@@ -146,14 +152,9 @@ bcftools query -f '%CHROM\t%POS\n' 2019melasglobal_finalfiltered_gambiaealigned_
 
 ###### snpEFF annotation of filtered VCF #####
 
-## have not done this with melas because there is no melas snpeff database ##
-
 ## SnpEff annotation of filtered VCF (this one was unphased, could do either)
-snpEff Anopheles_gambiae F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz > F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.ann.vcf
-#bgzip F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.ann.vcf
-#tabix -p vcf F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.ann.vcf.gz
-
 ## Can now use the extract snp info from vcf python script to extract all of the SNP information into readable format
 
 ### Aligned bijagos and global melas samples to anopheles gambiae and doing snpEff annotation of those using Anopheles gambiae database ###
-snpEff Anopheles_gambiae FMISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss_40_mac_bi_snps_melas_2019_plusglobal.2023_07_25.genotyped.vcf.gz > FMISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss_40_mac_bi_snps_melas_2019_plusglobal.2023_07_25.genotyped.ann.vcf
+snpEff Anopheles_gambiae final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz > final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz
+tabix -p vcf final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz
