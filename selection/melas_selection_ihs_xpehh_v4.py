@@ -270,8 +270,6 @@ print("iHS plotted with all chromosomes")
 # %% Compute empirical p-values, then can log transform these and plot.
 # the standardised ihs values are saved in ihs_gb_std[0]
 
-print("Starting to calculate p-values of iHS")
-
 # write function
 def calculate_empirical_p_value(sorted_values, observed_value):
     """
@@ -299,9 +297,13 @@ mask_non_nan = ~np.isnan(vals) #remove the ihs_gb_std nan values
 vals_withoutnan = vals[mask_non_nan] # save these values as vals_withoutnan
 pos_withoutnan = pos_gb_seg[mask_non_nan] # use the same mask to get the corresponding positions of vals_withoutnan
 chrom_withoutnan = chrom_gb_seg[mask_non_nan] # use the same mask to get the corresponding chromosomes of vals_withoutnan
+print("Filtered out NaN values")
 
 # %% Calculate p-values for non-NaN iHS scores
 sorted_ihs = np.sort(vals_withoutnan) #sort these by putting them in ascending order, ready for the calculate_empirical_p_value function
+print("Put values into ascending order")
+
+print("Starting to calculate p-values of iHS")
 
 # %% Multithread the p-value calculation because otherwise it is mega slow
 from concurrent.futures import ThreadPoolExecutor, as_completed
