@@ -41,7 +41,7 @@ def process_positions(input_file_path, vcf_file_path, output_file_path):
 
 # Specify your file paths
 input_file_path = 'positions_calculate_average_read_depth.txt'
-vcf_file_path = 'melas_2019_plusglobal.2023_07_25.genotyped.vcf.gz'
+vcf_file_path = '/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz'
 output_file_path = 'missense_snps_calculated_average_read_depth.txt'
 
 # Run the process

@@ -46,7 +46,7 @@ def main(args):
 
     # Path to your GFF3 file
     gff_file_path = '/mnt/storage11/sophie/reference_genomes/A_gam_P4_ensembl/Anopheles_gambiae.AgamP4.56.chr.gff3'
-    chromosome_for_gff = chromosome_arg.replace("anop_mito","Mt")
+    chromosome_for_gff = chromosome_arg.replace("anop_X","X")
     # Read the GFF3 file
     gff_df = pd.read_csv(
         '/mnt/storage11/sophie/reference_genomes/A_gam_P4_ensembl/Anopheles_gambiae.AgamP4.56.chr.gff3',

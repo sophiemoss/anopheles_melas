@@ -1,4 +1,3 @@
-# /mnt/storage11/sophie/bijagos_mosq_wgs/2022_gambiae_fq2vcf_agamP4/gambiae_nov2022_genomicdb/gambiae_nov2022_genotypedvcf/gambiae_nov2022_filtering
 # %% 
 import subprocess
 import pandas as pd
@@ -6,7 +5,7 @@ working_directory = "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_ga
 os.chdir(working_directory)
 
 # %% Define the input file with positions (CHR and POS)
-vcf_filename = "FMISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss_40_mac_bi_snps_melas_2019_plusglobal.2023_07_25.genotyped.ann.vcf.gz"  # Replace with your VCF file path
+vcf_filename = "final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz"  # Replace with your VCF file path
 
 # %% Define the input file with gene positions
 positions_file = "genes_of_interest.txt"
@@ -62,7 +61,7 @@ with open(positions_file, "r") as infile:
 df = pd.DataFrame(data, columns=["Gene", "Chrom", "Position", "Ref", "Alt", "Filter", "Info", "SamplesWithGenotypes"])
 
 # %% Optionally, save the DataFrame to a file
-output_file = "snp_info_from_filtered_vcf.csv"
+output_file = "snp_info_from_filtered_vcf_v2.csv"
 df.to_csv(output_file, index=False)
 print("DataFrame created and saved.")
 

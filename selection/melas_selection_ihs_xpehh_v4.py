@@ -14,6 +14,7 @@ import allel
 import zarr
 import pandas as pd
 import gffutils
+import tqdm
 
 # %% set wd
 os.chdir('/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering')
@@ -93,6 +94,7 @@ else:
 
 ihs_gb_raw = allel.ihs(h_gb_seg, pos_gb_seg, use_threads=True, include_edges=True)
 ihs_gb_raw
+print("Raw iHS computed")
 
 # %%
 
@@ -111,6 +113,7 @@ ax.set_ylabel('Frequency (no. variants)');
 
 ihs_gb_std = allel.standardize_by_allele_count(ihs_gb_raw, ac_gb_seg[:, 1])
 ihs_gb_std
+print("Standardized iHS computed")
 
 # %% 
 
@@ -147,6 +150,8 @@ timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 filename = f'ihs_manhattan_{timestamp}.png'
 plt.savefig(filename)
 
+print("iHS plotted")
+
 # %% find the index of the variant with the highest iHS value
 idx_hit_max = np.nanargmax(ihs_gb_std[0])
 
@@ -167,6 +172,8 @@ fig.suptitle('Reference allele', y=1);
 # %% 
 fig = allel.fig_voight_painting(h_hit[:, h_gb_seg[idx_hit_max] == 1], index=flank_size, height_factor=0.02)
 fig.suptitle('Alternate allele', y=1);
+
+print("EHH decay computed")
 
 # %% Plot iHS manhattan plot with all chromosomes
 
@@ -258,9 +265,12 @@ ax.axhline(y=threshold, color='black', linestyle='--')
 plt.tight_layout()
 plt.show()
 
+print("iHS plotted with all chromosomes")
 
 # %% Compute empirical p-values, then can log transform these and plot.
 # the standardised ihs values are saved in ihs_gb_std[0]
+
+print("Starting to calculate p-values of iHS")
 
 # write function
 def calculate_empirical_p_value(sorted_values, observed_value):
@@ -294,34 +304,52 @@ chrom_withoutnan = chrom_gb_seg[mask_non_nan] # use the same mask to get the cor
 sorted_ihs = np.sort(vals_withoutnan) #sort these by putting them in ascending order, ready for the calculate_empirical_p_value function
 
 # %% Multithread the p-value calculation because otherwise it is mega slow
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 
 def calculate_pval_concurrently(vals_withoutnan, sorted_ihs):
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        futures = [executor.submit(calculate_empirical_p_value, sorted_ihs, ihs) for ihs in vals_withoutnan]
-        pvals = [future.result() for future in futures]
+    with ThreadPoolExecutor(max_workers=25) as executor:
+        # Submit all tasks and keep track of futures
+        futures = {executor.submit(calculate_empirical_p_value, sorted_ihs, ihs): ihs for ihs in vals_withoutnan}
+        # Prepare to collect p-values
+        pvals = []
+        # Iterate over futures as they complete
+        for future in tqdm(as_completed(futures), total=len(futures), desc='Computing p-values'):
+            # Collect result from each future
+            pvals.append(future.result())
     return pvals
 
-# %% Use the function to calculate p-values
+# Use the function to calculate p-values
 pvals = calculate_pval_concurrently(vals_withoutnan, sorted_ihs)
+
+
+print("P-values computed")
 
 # %% save pvals for next time
 # output p-values retain their original order corresponding to vals_withoutnan
 pvals_df = pd.DataFrame(pvals, columns=['p_value'])
 pvals_df.to_csv('pvals_paralleled_screen.csv', index=False)
 
+print("Saved p-values to dataframe")
+
 # %% load pvals back in
-pvals_loaded_df = pd.read_csv('pvals_paralleled_screen.csv')
-pvals_loaded = pvals_loaded_df['p_value'].values
+#pvals_loaded_df = pd.read_csv('pvals_paralleled_screen.csv')
+#pvals_loaded = pvals_loaded_df['p_value'].values
 
 # %% save pvals_loaded as pvals so don't have to change the rest of the script
-pvals = pvals_loaded
+#pvals = pvals_loaded
 
 # %% Adjust p-values to avoid log10(0)
 adjusted_pvals = np.maximum(pvals, 1e-10)
 
+print("Adjusted p-values to avoid log10(0)")
+
 # %% Taking the log10
 log_pvals = np.log10(adjusted_pvals)
+
+print("Computed log10 of p-values")
+
+print("Plotting log10 of p-values")
 
 # %% Define colors for each chromosome (for illustration)
 chromosome_colours = {
