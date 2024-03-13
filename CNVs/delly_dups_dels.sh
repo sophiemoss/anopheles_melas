@@ -77,11 +77,40 @@ vcftools --gzvcf del_genes_of_interest_merged.sample_filt.site_filt.vcf.gz --wei
 ### Updated delly version ###
 
 ## Trying with delly call ALL
-for f in *.mkdup.bam; do delly call -t ALL -g Anopheles_gambiae.AgamP4.dna.toplevel.fa "$f" -o "${f%.*}.all.bcf"; done
 
 # read the sample identifiers from all_samples.txt, process the .all.bcf files, in parallel using -P 10,
 # then convert this to a vcf and then convert it to a text file without the header lines for easy viewing.
 # Produces individual text files for each sample
 
 ls *.mkdup.bam | sed 's/.bam//' > delly_all_samples.txt
-cat delly_all_samples.txt | xargs -I {} -P 10 sh -c "bcftools view -Ov {}.all.bcf | grep -v -P '^##' | sed 's/^/{}/ g' > {}_all_filt.bcf.txt"
+
+for f in *.mkdup.bam; do delly call -t ALL -g Anopheles_gambiae.AgamP4.dna.toplevel.fa "$f" -o "${f%.*}.all.bcf"; done
+
+delly merge -o structural_variants.bcf *.all.bcf
+
+bcftools view structural_variants.bcf > structural_variants.vcf
+
+bgzip structural_variants.vcf
+
+## Have a look at the structural_variants.vcf.gz
+zgrep -v ^"##" structural_variants.vcf.gz | less
+
+## genotype the structural variants # Delly genotyping requires local SV assembly (INFO/CONSENSUS) and breakpoint (INFO/CONSBP) introduced in delly v1.1.7!
+
+cat all_samples.txt | parallel -j 15 --bar "delly call -g Anopheles_gambiae.AgamP4.dna.toplevel.fa -v structural_variants.bcf -o {}.all.genotyped.bcf  {}.mkdup.bam"
+
+
+## re-annotate VCF with snpeff? 
+## Filter - keep samples that were used in downstream analysis - edit delly_good_samples.txt for this (removed samples with over 20% missing data)
+
+bcftools view -S delly_good_samples.txt structural_variants.vcf.gz -Oz -o structural_variants.sample_filt.vcf.gz
+
+
+## creat mappability map
+
+dicey chop Anopheles_gambiae.AgamP4.dna.toplevel.fa
+bwa index Anopheles_gambiae.AgamP4.dna.toplevel.fa
+bwa mem Anopheles_gambiae.AgamP4.dna.toplevel.fa car1002_Combined_1.fastq.gz car1002_Combined_2.fastq.gz | samtools sort -@ 8 -o srt.bam -
+samtools index srt.bam 
+dicey mappability2 srt.bam 
+gunzip map.fa.gz && bgzip map.fa && samtools faidx map.fa.gz 

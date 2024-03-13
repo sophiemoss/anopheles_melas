@@ -158,3 +158,21 @@ bcftools query -f '%CHROM\t%POS\n' 2019melasglobal_finalfiltered_gambiaealigned_
 ### Aligned bijagos and global melas samples to anopheles gambiae and doing snpEff annotation of those using Anopheles gambiae database ###
 snpEff Anopheles_gambiae final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz > final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz
 tabix -p vcf final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz
+
+
+
+
+
+## Making Bijagos only final filtered VCF (for nucleotide diversity)
+## create bijagos only vcf
+
+bcftools view -Oz -o bijagos_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz -S bijagos_filtered_samples.txt final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+tabix -p vcf bijagos_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+
+# re-run filter 6
+bcftools filter -e 'F_MISSING > 0.2 || MAF <= 0.01' bijagos_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz -Oz -o F_MISSING_MAF_bijagos_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+tabix -p vcf F_MISSING_MAF_bijagos_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+
+#conda activate beagle
+beagle -Xmx500g gt=F_MISSING_MAF_bijagos_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz out=bijagos_only_melas_phased
+

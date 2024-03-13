@@ -146,11 +146,7 @@ tabix -p vcf F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_chr_bi_snps_bij
 
 ###### snpEFF annotation of filtered VCF #####
 
-## have not done this with melas because there is no melas snpeff database ##
-
 ## SnpEff annotation of filtered VCF (this one was unphased, could do either)
 snpEff Anopheles_gambiae F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz > F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.ann.vcf
 bgzip F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.ann.vcf
 tabix -p vcf F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.ann.vcf.gz
-
-## Can now use the extract snp info from vcf python script to extract all of the SNP information into readable format
