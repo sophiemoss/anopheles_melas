@@ -1,4 +1,5 @@
 # Use for loops to call duplications and deletions for every sample, and create bcf files (input files for delly)
+# Starts with unfiltered bam files
 
 for f in *.mkdup.bam; do delly call -t DUP -g Anopheles_gambiae.AgamP4.dna.toplevel.fa "$f" -o "${f%.*}.dup.bcf"; done
  
@@ -16,15 +17,16 @@ delly merge -o deletions_to_genotype.bcf *.del.bcf
 delly merge -o duplications_to_genotype.bcf *.dup.bcf
 
 # STEP 2
-# re-genotype the bam files to look for specific deletions in the merged deletions_to_genotype.bcf
+# re-genotype the bam files to look for specific deletions/duplications in the merged deletions_to_genotype.bcf
 
 ls *.mkdup.bam | sed 's/.mkdup.bam//' > all_samples.txt
 
-cat all_samples.txt | parallel -j 5 --bar "delly call -g Anopheles_gambiae.AgamP4.dna.toplevel.fa -v deletions_to_genotype.bcf -o {}.del.genotyped.bcf  {}.mkdup.bam"
+cat all_samples.txt | parallel -j 15 --bar "delly call -g Anopheles_gambiae.AgamP4.dna.toplevel.fa -v deletions_to_genotype.bcf -o {}.del.genotyped.bcf  {}.mkdup.bam"
 cat all_samples.txt | parallel -j 15 --bar "delly call -g Anopheles_gambiae.AgamP4.dna.toplevel.fa -v duplications_to_genotype.bcf -o {}.dup.genotyped.bcf  {}.mkdup.bam"
 
 # STEP 3 Next step is to merge the genotyped bcfs
 
+bcftools merge -m id -O b -o dup_merged.bcf *.dup.genotyped.bcf
 bcftools merge -m id -O b -o del_merged.bcf *.del.genotyped.bcf
 
 # STEP 4 Filtering
@@ -72,3 +74,14 @@ vcftools --gzvcf del_genes_of_interest_merged.sample_filt.site_filt.vcf.gz --wei
 ### Analysis Type 2: Deletions in the Bijagos population that look potentially important ###
 # 117 in total in the candidate genes, which ones shall I report on?
 
+### Updated delly version ###
+
+## Trying with delly call ALL
+for f in *.mkdup.bam; do delly call -t ALL -g Anopheles_gambiae.AgamP4.dna.toplevel.fa "$f" -o "${f%.*}.all.bcf"; done
+
+# read the sample identifiers from all_samples.txt, process the .all.bcf files, in parallel using -P 10,
+# then convert this to a vcf and then convert it to a text file without the header lines for easy viewing.
+# Produces individual text files for each sample
+
+ls *.mkdup.bam | sed 's/.bam//' > delly_all_samples.txt
+cat delly_all_samples.txt | xargs -I {} -P 10 sh -c "bcftools view -Ov {}.all.bcf | grep -v -P '^##' | sed 's/^/{}/ g' > {}_all_filt.bcf.txt"

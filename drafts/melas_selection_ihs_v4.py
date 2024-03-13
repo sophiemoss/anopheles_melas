@@ -59,7 +59,7 @@ gt_gb_samples
 ## also some selection tests don't support multiallelic variants, so just keep biallelics
 ## for this pipeline the VCF is already filtered so should be no biallelic SNPs anyway
 
-ac_gb = gt_gb_samples.count_alleles(max_allele=8).compute()
+ac_gb = gt_gb_samples.count_alleles(max_allele=3).compute()
 gb_seg_variants = ac_gb.is_segregating() & ac_gb.is_biallelic_01()
 ac_gb_seg = ac_gb.compress(gb_seg_variants, axis=0)
 gt_gb_seg = gt_gb_samples.compress(gb_seg_variants, axis = 0)
@@ -197,7 +197,7 @@ chromosome_lengths = {
     'anop_X': 24393108
 }
 
-# %% Calculate cumulative offsets for each chromosome
+#  Calculate cumulative offsets for each chromosome
 cumulative_lengths = {}
 cumulative_length = 0
 for chrom, length in chromosome_lengths.items():
@@ -267,116 +267,139 @@ plt.show()
 
 print("iHS plotted with all chromosomes")
 
-# %% Compute empirical p-values, then can log transform these and plot.
-# the standardised ihs values are saved in ihs_gb_std[0]
+# %% Remove NaN iHS values, and use the same mask to filter pos and chrom.
+ihs_vals = ihs_gb_std[0] # the standardised ihs values are saved in ihs_gb_std[0]
+mask_non_nan = ~np.isnan(ihs_vals) #remove the ihs_gb_std nan values
+ihs_vals_withoutnan = ihs_vals[mask_non_nan] # save these values as vals_withoutnan
+pos_withoutnan = pos_gb_seg[mask_non_nan] # use the same mask to get the corresponding positions of vals_withoutnan
+chrom_withoutnan = chrom_gb_seg[mask_non_nan] # use the same mask to get the corresponding chromosomes of vals_withoutnan
+print("Filtered out NaN values")
 
-# write function
-def calculate_empirical_p_value(sorted_values, observed_value):
+# %% Sort these by putting them in ascending order, ready for the calculate_empirical_p_value function
+
+sorted_ihs = np.sort(ihs_vals_withoutnan) 
+print("Put values into ascending order")
+
+# %% Compute empirical p-values, then can log transform these and plot.
+
+def calculate_empirical_p_value(val, sorted_vals,l):
     """
     Calculate the empirical p-value for an observed value in a sorted list of values.
 
     Parameters:
     - sorted_values: A list of values, sorted in ascending order.
     - observed_value: The observed value for which to calculate the p-value.
+    - l: The length of the list of values
 
     Returns:
     - The empirical p-value.
     """
-    # Count how many values are as extreme or more extreme than the observed value
-    # For a one-tailed test, this would be how many values are greater than or equal to the observed value
-    extreme_values_count = sum(value >= observed_value for value in sorted_values)
-
-    # Calculate the empirical p-value
-    p_value = extreme_values_count / len(sorted_values)
-
-    return p_value
-
-# %% Filter out NaN values from the original iHS scores and keep their original positions
-vals = ihs_gb_std[0]
-mask_non_nan = ~np.isnan(vals) #remove the ihs_gb_std nan values
-vals_withoutnan = vals[mask_non_nan] # save these values as vals_withoutnan
-pos_withoutnan = pos_gb_seg[mask_non_nan] # use the same mask to get the corresponding positions of vals_withoutnan
-chrom_withoutnan = chrom_gb_seg[mask_non_nan] # use the same mask to get the corresponding chromosomes of vals_withoutnan
-print("Filtered out NaN values")
+    return (l-np.where(sorted_vals>=val)[0][0])/l
 
 # %% Calculate p-values for non-NaN iHS scores
-sorted_ihs = np.sort(vals_withoutnan) #sort these by putting them in ascending order, ready for the calculate_empirical_p_value function
-print("Put values into ascending order")
 
 print("Starting to calculate p-values of iHS")
 
-# %% Multithread the p-value calculation because otherwise it is mega slow
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm
+# Multithread the p-value calculation because otherwise it is mega slow
+import joblib
+import tqdm
 
-def calculate_pval_concurrently(vals_withoutnan, sorted_ihs):
-    with ThreadPoolExecutor(max_workers=25) as executor:
-        # Submit all tasks and keep track of futures
-        futures = {executor.submit(calculate_empirical_p_value, sorted_ihs, ihs): ihs for ihs in vals_withoutnan}
-        # Prepare to collect p-values
-        pvals = []
-        # Iterate over futures as they complete
-        for future in tqdm(as_completed(futures), total=len(futures), desc='Computing p-values'):
-            # Collect result from each future
-            pvals.append(future.result())
-    return pvals
+len_ihs = len(sorted_ihs)
+pvals = []
+from joblib import Parallel, delayed
 
-# Use the function to calculate p-values
-pvals = calculate_pval_concurrently(vals_withoutnan, sorted_ihs)
+parallel = Parallel(n_jobs=15, return_as='generator')
+pvals = [r for r in tqdm.tqdm(parallel(delayed(calculate_empirical_p_value)(val,sorted_ihs,len_ihs) for val in sorted_ihs),total=len(sorted_ihs))]
 
 
-print("P-values computed")
+## %% save pvals for next time
+## output p-values retain their original order corresponding to vals_withoutnan
+#print("Calculated p-values of iHS")
+#
+#ihsdata = {
+#    'iHS_value': vals_withoutnan,
+#    'Position': pos_withoutnan,
+#    'Chromosome': chrom_withoutnan,
+#    'p_value':pvals
+#
+#}
+#
+#pvals_df = pd.DataFrame(ihsdata)
+#pvals_df.to_csv('ihs_pvals_positions_chromosomes.csv', index=False)
+#
+#print("Saved p-values, iHS values, positions and chromosomes to dataframe")
 
-# %% save pvals for next time
-# output p-values retain their original order corresponding to vals_withoutnan
-pvals_df = pd.DataFrame(pvals, columns=['p_value'])
-pvals_df.to_csv('pvals_paralleled_screen.csv', index=False)
+# %% P-values are currently in the order of sorted iHS, need to reorder them back 
+# based on the position of the original ihs value in ihs_vals_withoutnan array
 
-print("Saved p-values to dataframe")
 
-# %% load pvals back in
-#pvals_loaded_df = pd.read_csv('pvals_paralleled_screen.csv')
-#pvals_loaded = pvals_loaded_df['p_value'].values
 
-# %% save pvals_loaded as pvals so don't have to change the rest of the script
-#pvals = pvals_loaded
-
-# %% Adjust p-values to avoid log10(0)
-adjusted_pvals = np.maximum(pvals, 1e-10)
-
-print("Adjusted p-values to avoid log10(0)")
-
-# %% Taking the log10
-log_pvals = np.log10(adjusted_pvals)
-
+# %% Take log of p-values
+neg_log_pvals = (-1*(np.log10(pvals)))
 print("Computed log10 of p-values")
 
-print("Plotting log10 of p-values")
+# %% Plotting adjusted p-values
+print("Plotting neg log10 of p-values")
 
-# %% Define colors for each chromosome (for illustration)
+# Define colors for each chromosome (for illustration)
 chromosome_colours = {
     '2L': '#3d348b', '2R': '#f18701', '3L': '#f7b801', '3R': '#7678ed', 'anop_mito': '#f35b04', 'anop_X': '#119DA4'
 }
 
-# %% Plotting
-plt.figure(figsize=(10, 6))
+# Plotting
 
-# Iterate through each chromosome to plot its variants with colors
-for chrom in sorted(set(chrom_withoutnan)):
+threshold = 5
+
+# Set up the plot
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Define colors for each chromosome (for illustration)
+chromosome_colours = {
+    '2L': '#3d348b', '2R': '#f18701', '3L': '#f7b801', '3R': '#7678ed', 'anop_mito': '#f35b04', 'anop_X': '#119DA4'
+}
+
+# Create a list to hold the legend patches
+legend_patches=[]
+
+# Filter out 'Y_unplaced' or any other chromosomes not in your chromosome_lengths dictionary
+filtered_chroms = ['2L', '2R', '3L', '3R', 'anop_X', 'anop_mito']
+
+# Iterate through each chromosome to plot its variants
+for chrom in filtered_chroms:
+    # Create mask for the current chromosome
     mask = chrom_withoutnan == chrom
-    plt.scatter(pos_withoutnan[mask], log_pvals[mask], color=chromosome_colours[chrom], alpha=0.6, label=chrom)
+    
+    # Apply the chromosome mask
+    chrom_positions = pos_withoutnan[mask]
+    chrom_p_values = neg_log_pvals[mask]
+    
+    # Adjust positions for visualization if needed
+    adjusted_positions = chrom_positions + cumulative_lengths[chrom]
 
-plt.xlabel('Genomic Position (bp)')
-plt.ylabel('-log10(P-value)')
-plt.title('Manhattan Plot of iHS Scores Colored by Chromosome')
-plt.grid(True)
+    # Now create threshold masks based on the non-NaN iHS values
+    below_threshold_mask = chrom_p_values < threshold
+    above_threshold_mask = chrom_p_values >= threshold
+    
+    # Plot points below and above the threshold
+    ax.scatter(adjusted_positions[below_threshold_mask], 
+               chrom_p_values[below_threshold_mask], 
+               color=chromosome_colours[chrom], alpha=0.1, s=10)
+    ax.scatter(adjusted_positions[above_threshold_mask], 
+               chrom_p_values[above_threshold_mask], 
+               color=chromosome_colours[chrom], alpha=1.0, s=10)
+    patch = mpatches.Patch(color=chromosome_colours[chrom], label=chrom)
+    legend_patches.append(patch)
 
-# Optional: Create a legend if you want to identify chromosomes by color
-plt.legend(title='Chromosome', bbox_to_anchor=(1.05, 1), loc='upper left')
+legend_patches.append(mpatches.Patch(color='black', label='Significance Threshold'))
+ax.legend(handles=legend_patches, title='Chromosome', bbox_to_anchor=(1.05, 1), loc='upper left')
 
+ax.set_xlabel('Genomic Position (bp)')
+ax.set_ylabel('$|iHS|$')
+ax.axhline(y=threshold, color='black', linestyle='--')
 plt.tight_layout()
 plt.show()
 
+print("iHS p-values plotted with all chromosomes")
 
 
 
@@ -396,8 +419,7 @@ plt.show()
 
 
 
-
-# Hashing out below to run script to here in screen
+# %% Hashing out below to run script to here in screen
 #
 #
 ## %% list all positions with iHS value over certain threshold
@@ -455,177 +477,5 @@ plt.show()
 #            # Write to outfile
 #            outfile.write(f"{chromosome}\t{position}\t{ihs_value}\t{','.join(gene_ids)}\n")
 #
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-## %% ########### Cross-population extended haplotype homozygosity (XPEHH) ###########
-#
-### Compute the unstandardized cross-population extended haplotype homozygosity score (XPEHH) for each variant.
-### allel.xpehh(h1, h2, pos, map_pos=None, min_ehh=0.05, include_edges=False, gap_scale=20000, max_gap=200000, is_accessible=None, use_threads=True)
-## create h1 and h2, selecting all variants instead of segregating variants only, which is what we did in iHS
-#
-#
-## %%
-### VCF is phased so we can convert genotype arrays made earlier to haplotype array
-### Create arrays needed for Cameroon samples
-#sample_ids = callset['samples'][:]
-## Get sample identifiers for Cameroon samples from df_samples
-#cam_sample_ids = df_samples[df_samples['country'] == 'Cameroon']['sample'].values
-## Find indices of these samples in the genotype array
-#cam_indices = np.array([np.where(sample_ids == id)[0][0] for id in cam_sample_ids if id in sample_ids])
-## Verify the indices are within the correct range
-#print("Max index:", cam_indices.max(), "Sample array size:", len(sample_ids))
-## Select genotypes for Cameroon samples using the indices
-#gt_cam_samples = gt.take(cam_indices, axis=1)
-#
-## %% select variants that are segregating within cam_samples as only these will be informative
-### also some selection tests don't support multiallelic variants, so just keep biallelics
-#
-#ac_cam = gt_cam_samples.count_alleles(max_allele=8).compute()
-#cam_seg_variants = ac_cam.is_segregating() & ac_cam.is_biallelic_01()
-#ac_cam_seg = ac_cam.compress(cam_seg_variants, axis=0)
-#gt_cam_seg = gt_cam_samples.compress(cam_seg_variants, axis = 0)
-#gt_cam_seg
-#
-## %% this is from a phased VCF so we can convert this genotype array to haplotype array
-#
-#h_cam_seg = gt_cam_seg.to_haplotypes().compute()
-#h_cam_seg
-#
-## %% we need variant positions
-#pos = callset['variants/POS'][:]
-#pos_cam_seg = pos.compress(cam_seg_variants, axis=0)
-#pos_cam_seg
-#
-## Let's check if there any of genomic positions with multiple variants.
-#count_multiple_variants = np.count_nonzero(np.diff(pos_cam_seg == 0))
-#
-#if count_multiple_variants == 0:
-#    print("No cases where there are multiple variants at the same genomic position, script will continue")
-#else:
-#    print("There are multiple variants at the same genomic position. This causes problems with some selection tests using sci-kit allel.")
-#    sys.exit()  # This will stop the script. If you want the script to continue anyway, # out this line
-#
-## %% Continue with xp-ehh 
-#
-#
-#
-#
-#h_sus = gt_sus_samples.to_haplotypes().compute()
-#h_sus
-#
-#h_res = gt_res_samples.to_haplotypes().compute()
-#h_res
-#
-#ac_gt = gt.count_alleles(max_allele=8).compute()
-#
-## %%
-## get variant positions
-#
-#pos = callset['variants/POS'][:]
-#pos
-#
-## %% look at shapes of arrays
-#print("h_sus shape:", h_sus.shape)
-#print("h_res shape:", h_res.shape)
-#print("pos shape", pos.shape)
-#
-## %% compute xpehh
-## xpehh_raw = allel.xpehh(h_sus, h_res, pos, map_pos=None, min_ehh=0.05, include_edges=False, gap_scale=20000, max_gap=20000, is_accessible=None, use_threads=True)
-#
-## xpehh_raw = allel.xpehh(h_sus, h_res, pos, map_pos=None, include_edges=True, use_threads=True)
-#xpehh_raw = allel.xpehh(h_sus, h_res, pos, use_threads=True)
-#xpehh_raw
-#
-## %% look for where the biggest signal is
-#xpehh_hit_max = np.nanargmax(xpehh_raw)
-#xpehh_hit_max
-#
-## %% genomic position of top hit
-#pos[xpehh_hit_max]
-#
-## %%
-#%matplotlib inline
-#import matplotlib.pyplot as plt
-#
-## %%
-#
-#fig, ax = plt.subplots()
-#ax.hist(xpehh_raw[~np.isnan(xpehh_raw)], bins=20)
-#ax.set_xlabel('Raw XP-EHH')
-#ax.set_ylabel('Frequency (no. variants)');
-#
-## %% Standardize XP-EHH - do not think that we really need to do this
-#
-## xpehh_std = allel.standardize_by_allele_count(xpehh_raw, ac_gt[:, 1])
-#
-## %% 
-##fig, ax = plt.subplots()
-##ax.hist(xpehh_std[0][~np.isnan(xpehh_std[0])], bins=20)
-##ax.set_xlabel('Standardized XP-EHH')
-##ax.set_ylabel('Frequency (no. variants)');
-#
-## %% note that iHS has been calculated with unpolarized data, so only the magnitude of iHS
-## is informative, not the sign.
-## xpehh_std
-#
-## %% look at shapes
-#
-#print("pos shape:", pos.shape)
-#print("xpehh_raw shape:", xpehh_raw.shape)
-#
-#min_pos = pos.min()
-#max_pos = pos.max()
-#
-#print("Minimum Genomic Position:", min_pos)
-#print("Maximum Genomic Position:", max_pos)
-#
-#
-## %% plot on manhattan plot
-#
-#fig, ax = plt.subplots(figsize=(10, 3))
-#ax.plot(pos, np.abs(xpehh_raw), linestyle=' ', marker='o', mfc='none', mew=3, mec='k', label='$|XP-EHH|$')
-#ax.axhline(y=4, color='red', linestyle='--')
-#ax.set_xlabel('Genomic position (bp)')
-#ax.set_ylabel('$|XP-EHH|$')
-#ax.set_ylim(0, 8)
-#ax.set_xlim(0,61542681)
-#ax.legend()
-#
-## %% list all positions with iHS value over certain threshold
-#
-#xpehh_positions_above_threshold_4 = pos[xpehh_raw >= 4]
-#
-## Save positions_above_threshold to a text file
-#with open("xpehh_positions_above_threshold_4", "w") as file:
-#    for position in xpehh_positions_above_threshold_4:
-#        file.write(str(position) + "\n")
-#
-#
-#
-## %% ################################ TAJIMA'S D #####################################
-#
-## allel.moving_delta_tajima_d(ac1, ac2, size, start=0, stop=None, step=None
-## compute the difference in Tajima's D between two populations in moving windows
-#
-## create allele counts arrays ac1 and ac2
-## genotype arrays were made earlier in this script: gt_sus_samples and gt_res_samples
-#
-#ac_sus_samples = gt_sus_samples.count_alleles()
-#ac_sus_samples
-#
-#ac_res_samples = gt_res_samples.count_alleles()
-#ac_res_samples
-#
+
+# %%
