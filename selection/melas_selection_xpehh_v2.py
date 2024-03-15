@@ -87,7 +87,7 @@ xpehh_hit_max
 # %% genomic position of top hit
 pos[xpehh_hit_max]
 
-# %%
+# %% Plot the raw xp-ehh values
 
 fig, ax = plt.subplots()
 ax.hist(xpehh_raw[~np.isnan(xpehh_raw)], bins=20)
@@ -98,6 +98,13 @@ ax.set_ylabel('Frequency (no. variants)');
 
 allele_counts_array = gt.count_alleles(max_allele=3).compute()
 xpehh_std = allel.standardize_by_allele_count(xpehh_raw, allele_counts_array[:, 1])
+
+# %% plot standardised xp-ehh values
+
+fig, ax = plt.subplots()
+ax.hist(xpehh_std[0][~np.isnan(xpehh_std[0])], bins=20)
+ax.set_xlabel('Raw XP-EHH')
+ax.set_ylabel('Frequency (no. variants)');
 
 # %% Plot standardized xp-ehh
 
@@ -118,7 +125,7 @@ for chrom, length in chromosome_lengths.items():
     cumulative_lengths[chrom] = cumulative_length
     cumulative_length += length
 
-# Plot XP-EHH
+# %% Plot XP-EHH
 
 # Set threshold
 bijagos_threshold = 5
@@ -132,45 +139,62 @@ pos = np.array(callset['variants/POS'][:])
 chrom = np.array(callset['variants/CHROM'][:])
 xpehh_standardised_values = np.array(xpehh_std[0])
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import numpy as np
+
 # Define colors for each chromosome (for illustration)
 chromosome_colours = {
     '2L': '#3d348b', '2R': '#f18701', '3L': '#f7b801', '3R': '#7678ed', 'anop_mito': '#f35b04', 'anop_X': '#119DA4'
 }
 
+# Set threshold
+bijagos_threshold = 5
+cameroon_threshold = -5
+
+# Set up the plot
+fig, ax = plt.subplots(figsize=(10, 6))
+
 # Create a list to hold the legend patches
-legend_patches=[]
+legend_patches = []
 
-# Iterate through each unique chromosome after filtering out 'Y_unplaced'
-for unique_chrom in np.unique(chrom[chrom != 'Y_unplaced']):
-    # Create a boolean mask for the current chromosome, excluding 'Y_unplaced'
-    chrom_mask = (chrom == unique_chrom)
+# Filtered chromosomes list, assuming cumulative_lengths are defined for these
+filtered_chroms = ['2L', '2R', '3L', '3R', 'anop_X', 'anop_mito']
 
-    # Apply the mask to filter positions and xpehh values
+# Iterate through each chromosome to plot its variants
+for unique_chrom in filtered_chroms:
+    chrom_mask = chrom == unique_chrom
+    
     chrom_positions = pos[chrom_mask]
     chrom_xpehh_values = xpehh_standardised_values[chrom_mask]
-
-    # Further apply a non-NaN mask to these filtered values
+    
     non_nan_mask = ~np.isnan(chrom_xpehh_values)
     chrom_positions_no_nan = chrom_positions[non_nan_mask]
     chrom_xpehh_values_no_nan = chrom_xpehh_values[non_nan_mask]
+    
+    adjusted_positions = chrom_positions_no_nan + cumulative_lengths.get(unique_chrom, 0)
 
-    # Adjust positions for visualization based on cumulative lengths
-    adjusted_positions = chrom_positions_no_nan + cumulative_lengths[unique_chrom]
-
-    # Plot points for this chromosome
-    ax.scatter(adjusted_positions, 
-               chrom_xpehh_values_no_nan, 
-               color=chromosome_colours[unique_chrom], 
-               alpha=0.6, s=10, label=unique_chrom)
-
+    # Conditions for plotting
+    solid_mask = (chrom_xpehh_values_no_nan >= bijagos_threshold) | (chrom_xpehh_values_no_nan <= cameroon_threshold)
+    faded_mask = ~solid_mask
+    
+    # Plot solid points for values above 5 or below -5
+    ax.scatter(adjusted_positions[solid_mask], 
+               chrom_xpehh_values_no_nan[solid_mask], 
+               color=chromosome_colours[unique_chrom], alpha=1.0, s=10)
+    
+    # Plot faded points for other values
+    ax.scatter(adjusted_positions[faded_mask], 
+               chrom_xpehh_values_no_nan[faded_mask], 
+               color=chromosome_colours[unique_chrom], alpha=0.1, s=10)
+    
     # Add patch for the legend
     patch = mpatches.Patch(color=chromosome_colours[unique_chrom], label=unique_chrom)
     legend_patches.append(patch)
 
-# Add significance threshold line and legend
-ax.axhline(y=bijagos_threshold, color='black', linestyle='--', label='Significance Threshold')
-ax.axhline(y=cameroon_threshold, color='black', linestyle='--', label='Significance Threshold')
-
+# Add significance threshold lines and legend
+ax.axhline(y=bijagos_threshold, color='black', linestyle='--', label='Bijagos Threshold')
+ax.axhline(y=cameroon_threshold, color='black', linestyle='--', label='Cameroon Threshold')
 ax.legend(handles=legend_patches, title='Chromosome', bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # Set labels
@@ -247,7 +271,7 @@ with open(output_file_name, "w") as outfile:
             gff_annotation = "; ".join(overlapping_gff_lines)
             
             # Write to the output file
-            outfile.write(f"{chromosome}\t{position}\t{XPEHH}\t{gff_annotation}\n")
+            outfile.write(f"{chromosome},{position},{XPEHH},{gff_annotation}\n")
 
 print(f"XP-EHH significant values identified and GFF annotations written here: {output_file_name}")
 # %%
@@ -289,7 +313,7 @@ with open(output_file_name, "w") as outfile:
             gff_annotation = "; ".join(overlapping_gff_lines)
             
             # Write to the output file
-            outfile.write(f"{chromosome}\t{position}\t{XPEHH}\t{gff_annotation}\n")
+            outfile.write(f"{chromosome},{position},{XPEHH},{gff_annotation}\n")
 
 print(f"XP-EHH significant values identified and GFF annotations written here: {output_file_name}")
 # %%

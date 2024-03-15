@@ -97,14 +97,20 @@ zgrep -v ^"##" structural_variants.vcf.gz | less
 
 ## genotype the structural variants # Delly genotyping requires local SV assembly (INFO/CONSENSUS) and breakpoint (INFO/CONSBP) introduced in delly v1.1.7!
 
-cat all_samples.txt | parallel -j 15 --bar "delly call -g Anopheles_gambiae.AgamP4.dna.toplevel.fa -v structural_variants.bcf -o {}.all.genotyped.bcf  {}.mkdup.bam"
+cat delly_all_samples.txt | parallel -j 15 --bar "delly call -g Anopheles_gambiae.AgamP4.dna.toplevel.fa -v structural_variants.bcf -o {}.all.genotyped.bcf  {}.bam"
 
+# %% merge all of the genotyped bcf files together
+bcftools merge -m id -O b -o merged.bcf *.all.genotyped.bcf
 
-## re-annotate VCF with snpeff? 
 ## Filter - keep samples that were used in downstream analysis - edit delly_good_samples.txt for this (removed samples with over 20% missing data)
 
 bcftools view -S delly_good_samples.txt structural_variants.vcf.gz -Oz -o structural_variants.sample_filt.vcf.gz
 
+## Re-annotate with snpeff
+
+
+
+### Delly CNVs?
 
 ## creat mappability map
 
