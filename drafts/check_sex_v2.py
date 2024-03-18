@@ -44,4 +44,4 @@ for bamfile in bamfiles:
 df = pd.DataFrame(results, columns=['BamFile', 'MtCoverage', 'R3Coverage', 'CoverageRatio', 'Sex'])
 df.to_csv('coverage_and_sex_from_bam.txt', index=False, sep='\t')
 
-print('Finished processing. Results saved to coverage_and_sex_from_bam.txt.')
+print('Finished processing. Results saved to coverage_and_sex_from_bam_X_3R.txt.')

@@ -37,3 +37,6 @@ bcftools concat -f vcfs.txt -Oz -o merged.vcf.gz --threads 20
 
 # cleanup step
 cat vcfs.txt | xargs rm
+
+
+### I used the anopheles gambiae database not the melas database for my paper ###
