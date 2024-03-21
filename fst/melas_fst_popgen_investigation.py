@@ -1,12 +1,10 @@
 ## scikitallel_workflow
 # /mnt/storage11/sophie/gitrepos/anopheles_melas/melas_fst_v1.py
 # run this script using
-# python /mnt/storage11/sophie/gitrepos/anopheles_melas/melas_fst_v1.py /pathway/to/dir /pathway/to/zarr chromosomename
-# python /mnt/storage11/sophie/gitrepos/anopheles_melas/melas_fst_v2.py . /mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/2019melasglobal_finalfiltered_gambiaealigned_phased.zarr 2R
-# You make the zarr file with allel.vcf_to_zarr('phased_vcf_file_name.vcf.gz', 'output_name.zarr', fields='*', overwrite=True)
+# python script.py /pathway/to/dir /pathway/to/zarr chromosomename
+# python /mnt/storage11/sophie/gitrepos/anopheles_melas/fst/melas_fst_popgen_investigation.py . 2019melasglobal_finalfiltered_gambiaealigned_phased.zarr 2L
 
 # allel.vcf_to_zarr('2019_melas_phased.vcf.gz', '2019_melas_phased.zarr', fields='*', overwrite=True)
-# python /mnt/storage11/sophie/gitrepos/anophelesmelas_popgen/scikit_allel_fst_calculate_and_plot_melasPCAinvestigation.py /mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas2019plusglobal_vcf_filtering 2019_melas_phased.zarr 2L
 
 #### This script is altered specifically for Mt and X becuase the names in the gff and the zarr file are different. Use the zarr file chr name for the command, then change this line [chromosome_for_gff = chromosome_arg.replace("anop_mito","Mt")] to determine what chromosome name should be found in the gff file for the annotation
 
@@ -45,7 +43,7 @@ def main(args):
 
     # Path to your GFF3 file
     gff_file_path = '/mnt/storage11/sophie/reference_genomes/A_gam_P4_ensembl/Anopheles_gambiae.AgamP4.56.chr.gff3'
-    chromosome_for_gff = chromosome_arg.replace("anop_X","X")
+    chromosome_for_gff = chromosome_arg.replace("anop_mito","Mt")
     # Read the GFF3 file
     gff_df = pd.read_csv(
         '/mnt/storage11/sophie/reference_genomes/A_gam_P4_ensembl/Anopheles_gambiae.AgamP4.56.chr.gff3',
@@ -111,14 +109,14 @@ def main(args):
         sys.exit()  # This will stop the script. If you want the script to continue anyway, # out this line
 
     # %%  IMPORT METADATA
-    df_samples= pd.read_csv('pca_investigation_metadata_melasplusglobal.csv',sep=',',usecols=['sample','country','year','species','island','pcagroup'])
+    df_samples= pd.read_csv('fst_tree_investigation_metadata.csv',sep=',',usecols=['sample','country','year','species','island','pcagroup'])
     df_samples.head()
     df_samples.groupby(by=['pcagroup']).count()
     print("Imported metadata")
 
     # %%  choose sample populations to work with
-    pop1 = 'group1'
-    pop2 = 'group2'
+    pop1 = 'groupA'
+    pop2 = 'groupB'
     n_samples_pop1 = np.count_nonzero(df_samples.pcagroup == pop1)
     n_samples_pop2 = np.count_nonzero(df_samples.pcagroup == pop2)
     print("Population 1:", pop1, "Number of samples in pop1:", n_samples_pop1, "Population 2:", pop2, "Number of samples in pop2:", n_samples_pop2)
@@ -169,12 +167,12 @@ def main(args):
         sys.exit()  # This will stop the script. If you want the script to continue anyway, # out this line
 
     # %% PLOT FST using windowed weird and cockerham fst
-    print("Plotting Fst using allel.windowed_weir_cockerham_fst, window size 1000")
+    print("Plotting Fst using allel.windowed_weir_cockerham_fst, window size 100")
 
-    subpoplist = [list(subpops['group1']),
-                    list(subpops['group2'])]
+    subpoplist = [list(subpops['groupA']),
+                    list(subpops['groupB'])]
 
-    fst, windows, counts = allel.windowed_weir_cockerham_fst(pos, genotype, subpoplist, size=1000)
+    fst, windows, counts = allel.windowed_weir_cockerham_fst(pos, genotype, subpoplist, size=100)
 
     # use the per-block average Fst as the Y coordinate
     y = fst
@@ -192,10 +190,10 @@ def main(args):
     print(len(x),len(y))
 
     # save fst figure
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    filename = f'fst_w&c_windowed_{args.chromosome}_{pop1}_{pop2}_{timestamp}.png'
-    plt.savefig(filename)
-    print("Saving windowed Fst plot")
+    #timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    #filename = f'fst_w&c_windowed_{args.chromosome}_{pop1}_{pop2}_{timestamp}.png'
+    #plt.savefig(filename)
+    #print("Saving windowed Fst plot")
 
     # INSPECT Fst values
     # %% Print the maximum FST value and its corresponding window
@@ -207,7 +205,7 @@ def main(args):
     max_window = windows[max_index]
 
     print("Maximum FST Value:", max_value)
-    print("Corresponding Window (Genomic bps):", max_window)
+    print("Corresponding Window (Chr position):", max_window)
 
     # %% Print the mean and median Fst value for the chromosome
 
@@ -221,13 +219,13 @@ def main(args):
     print("Median fst value:", median_value)
 
     # %% save Fst values over a certain threshold
-    fst_threshold = 0.8
+    fst_threshold = 0.5
     fst_over_threshold = [(window, value) for window, value in zip(windows, fst) if value >= fst_threshold]
 
     if fst_over_threshold:
-        filename = f'fst_greater_than_{fst_threshold}_{pop1}_{pop2}_{args.chromosome}_window_size_1000_v2_ann.txt'
+        filename = f'fst_greater_than_{fst_threshold}_{pop1}_{pop2}_{args.chromosome}_window_size_1000_ann.txt'
         with open(filename, 'w') as fst_file:
-            fst_file.write("Window (Genomic bps)\tFST Value\tAnnotations\n")
+            fst_file.write("Window (Position)\tFST Value\tAnnotations\n")
             for window, value in fst_over_threshold:
                 annotations = find_annotations_for_window(window, gff_df, chromosome_for_gff)
                 fst_file.write(f"{window[0]}-{window[1]}\t{value}\t{annotations}\n")
@@ -235,7 +233,7 @@ def main(args):
     else:
         print(f"No FST values over the threshold of {fst_threshold} were found")
 
-    ## %% Calculte fst with blen = 1 so that fst is calculated for every variant. Note this takes a bit longer to run.
+    # %% Calculte fst with blen = 1 so that fst is calculated for every variant. Note this takes a bit longer to run.
     ## PLOT FST using windowed weird and cockerham fst - try this, not sure if x = pos
     #print("Calculating fst with blen = 1, this takes a bit longer to run as fst is being calculating for each variant instead of in windows")
 #
@@ -296,7 +294,7 @@ def main(args):
     #    # Dynamically generate filename based on fst_threshold
     #    filename = f'fst_individual_variants_greater_than_{fst_threshold}_{args.chromosome}_blen1_v2_ann.txt'
     #    with open(filename, 'w') as fst_file:
-    #        fst_file.write("Variant (Genomic bps)\tFST Value\n")
+    #        fst_file.write("Variant (Chromosome pos)\tFST Value\n")
     #        for variant, value in fst_over_threshold:
     #            annotations = find_annotations_for_window(window, gff_df, chromosome_for_gff)
     #            fst_file.write(f"{window[0]}-{window[1]}\t{value}\t{annotations}\n")

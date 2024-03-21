@@ -9,40 +9,26 @@ bcftools query -l final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas
 
 vcftools --gzvcf bijagos_only_melas_phased.vcf.gz --window-pi 10000 --out bijagos_only_nuc_div_window_10kb
 
-bcftools view -r 3L,3R bijagos_only_melas_phased.vcf.gz -Oz -o chrom_3_bijagos_only_melas_phased.vcf.gz
+# Can look at chromosome 3L only because it is not impact by large inversion found in An. gambiae complex in 3R, 2R, 2L, or X.
 
-# or just to get mean nucleotide diversity for population
+bcftools view -r 3L bijagos_only_melas_phased.vcf.gz -Oz -o 3L_bijagos_only_melas_phased.vcf.gz
 
-vcftools --gzvcf bijagos_only_melas_phased.vcf.gz --site-pi --out bijagos_only_nuc_div
+# calculate nucleotide diversity per site
 
-vcftools --gzvcf chrom_3_bijagos_only_melas_phased.vcf.gz --window-pi 20000 --out chrom_3_bijagos_only_nuc_div_window_20kb
-awk '{if(NR>1) sum+=$5; count++} END {print sum/(count-1)}' chrom_3_bijagos_only_nuc_div_window_20kb.windowed.pi (0.00309722)
+vcftools --gzvcf 3L_bijagos_only_melas_phased.vcf.gz --site-pi --out bijagos_3L_only_nuc_div
 
-## median
-awk 'NR>1 {print $5}' chrom_3_bijagos_only_nuc_div_window_20kb.windowed.pi | sort -n | awk '{
-    count[NR] = $1
-}
-END {
-    if (NR % 2 == 1) {
-        print count[(NR + 1) / 2]
-    } else {
-        median = (count[(NR / 2)] + count[(NR / 2) + 1]) / 2
-        print median
-    }
-}'
+# calculate mean 
 
-(median = 0.003239)
+awk '{ total += $3; count++ } END { print total/count }' bijagos_3L_only_nuc_div.sites.pi
+# 0.115401 (11.5% of nucleotides are different between individuals in this population on average)
 
-# calculate mean value of per site pi
+# calculate nucleotide diversity per window
 
-awk '{ total += $3; count++ } END { print total/count }' bijagos_only_nuc_div.sites.pi
+vcftools --gzvcf 3L_bijagos_only_melas_phased.vcf.gz --window-pi 20000 --out bijagos_3L_only_nuc_div_window20k
 
-0.120334
+awk '{if(NR>1) sum+=$5; count++} END {print sum/(count-1)}' bijagos_3L_only_nuc_div_window20k.windowed.pi
+# 0.00302611 (0.3% of nucleotides are different between individuals in this population on average)
+`
+## Tajima's D
 
-# calculate mean value of windowed pi
-
-awk '{ total += $5; count++ } END { print total/count }' bijagos_only_nuc_div_window_10kb.windowed.pi
-
-0.0029906
-
-# see which is more commonly reported and what they mean
+vcftools --gzvcf 3L_bijagos_only_melas_phased.vcf.gz --TajimaD 20000 --out 3L_bijagos_only_melas_phased

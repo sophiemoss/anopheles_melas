@@ -4,10 +4,9 @@ library(ggplot2)
 library(ape)
 showtext_auto()
 library(viridis)
-library(scales)
 
 workdir <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/pca" # Working directory with plink files
-prefix <- "3L_only_melas_plusglobal" # Prefix for plink files
+prefix <- "2L_only_melas_plusglobal" # Prefix for plink files
 metadata <- "metadata_melasplusglobal.csv" # File path to metadata
 
 calc_variance_explained <- function(pc_points) {
@@ -79,15 +78,13 @@ color_by <- "country" # specify if colored by region or country
 #
 my_colours <- c("Cameroon" = "#7678ed", "Guinea-Bissau" = "#3d348b", "The Gambia" = "#f7b801")
 
-png("3L_only_PCA_melas_plus_global_relabelledyaxis.png") 
+png("2L_only_PCA_melas_plus_global_samples_labelled.png") 
 ggplot(data = df, aes(x = PC1, y = PC2, color = !!sym(color_by))) +
     geom_point() +
-    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "Chromosome 3L") +
-    scale_color_manual(values = my_colours) +
-    scale_x_continuous(labels = label_number()) +
-    scale_y_continuous(labels = label_number()) +
+    geom_text(aes(label = sample), vjust = 1.5, size = 2, angle = 20, check_overlap = TRUE) +
+    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "2L") +
+    scale_color_manual(values = my_colours) + 
     theme_classic() +
-    theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5),
-    plot.margin = margin(t = 10, r = 40, b = 30, l = 10, unit = "pt"))
+    theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))
 dev.off()
 #

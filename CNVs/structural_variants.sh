@@ -21,7 +21,6 @@ bgzip structural_variants.vcf
 zgrep -v ^"##" structural_variants.vcf.gz | less
 
 ## genotype the structural variants 
-
 cat delly_all_samples.txt | parallel -j 15 --bar "delly call -g Anopheles_gambiae.AgamP4.dna.toplevel.fa -v structural_variants.bcf -o {}.all.genotyped.bcf  {}.bam"
 
 # %% merge all of the genotyped bcf files together
@@ -34,47 +33,40 @@ bcftools query -l merged.bcf
 bcftools convert -Oz -o merged.vcf.gz merged.bcf
 
 # check sample names
-
-bcftools view -h merged.vcf.gz | grep '^#CHROM' | cut -f10- 
+bcftools view -h merged.vcf.gz | grep '^#CHROM' | cut -f10- > merged_sample_names.txt
 
 ## Filter - keep samples that were used in downstream analysis - edit delly_good_samples.txt for this (removed samples with over 20% missing data)
 
-bcftools view -S delly_good_samples2.txt merged.bcf -Oz -o merged_genotyped_structural_variants_sample_filt.vcf.gz
+bcftools view -S delly_good_samples.txt merged.bcf -Oz -o merged_genotyped_structural_variants_sample_filt.vcf.gz
 tabix -p vcf merged_genotyped_structural_variants_sample_filt.vcf.gz
 
-## Filter again to remove deletions with >20% missing data
-
-bcftools view merged_genotyped_structural_variants_sample_filt.vcf.gz | bcftools view -i 'F_PASS(GT!="mis")>0.8' -Oz -o merged_genotyped_structural_variants_sample_filt.site_filt.vcf.gz
-
-## Filter again to remove heterozygous (have mixed ref/alt calls)
-
-bcftools view merged_genotyped_structural_variants_sample_filt.site_filt.vcf.gz | bcftools filter -e 'GT="het"' -S . -Oz -o merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz
+## Filter again to remove SVs with >20% missing data
+bcftools view merged_genotyped_structural_variants_sample_filt.vcf.gz | bcftools view -i 'F_PASS(GT!="mis")>0.8' -Oz -o merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz
+tabix -p vcf merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz
 
 # Query number of variants
-
-bcftools view merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz | grep -v "^#" | wc -l
-# 119514 structural variants in total across entire genome for filtered samples and sites, many of these were homozygous alt after filtering for sample names
+bcftools view merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz | grep -v "^#" | wc -l
+# 113121 structural variants in total across entire genome for filtered samples and missingness
 
 # Filter the VCF based on genes of interest
-bcftools view -R genes_of_interest_+-1kb.bed merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz -Oz -o genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz
-tabix -p vcf genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz
-
-# Extract information on these variants
-# 231 variants in genes of interest
+bcftools view -R genes_of_interest_+-1kb.bed merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz -Oz -o genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz
+tabix -p vcf genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz
+bcftools view genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz | grep -v "^#" | wc -l
+# 215 variants in genes of interest
 
 # Extract sample names
-bcftools view -h genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz | grep '^#CHROM' | cut -f10- > vcf_sample_names.txt
+bcftools view -h genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz | grep '^#CHROM' | cut -f10- > filtered_SV_vcf_sample_names.txt
 # Extract information from vcf
-bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%QUAL\t%FILTER\t%INFO/SVTYPE\t[%GT\t]\n' genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz > structural_variants_trans.txt
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%QUAL\t%FILTER\t%INFO/SVTYPE\t[%GT\t]\n' genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz > structural_variants.txt
 
 # Annotate with snpeff
 
-snpEff Anopheles_gambiae genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz > snpeff_genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf
-bgzip snpeff_genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf
-tabix -p vcf snpeff_genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz
+snpEff Anopheles_gambiae genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz > snpeff_genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf
+bgzip snpeff_genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf
+tabix -p vcf snpeff_genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz
 
 # Extract information from vcf with snpeff
-bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%QUAL\t%FILTER\t%INFO/SVTYPE\t%INFO/ANN\t[%GT\t]\n' snpeff_genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.vcf.gz > snpeff_structural_variants.txt
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%QUAL\t%FILTER\t%INFO/SVTYPE\t%INFO/ANN\t[%GT\t]\n' snpeff_genes_merged_genotyped_structural_variants_sample_filt_miss20.vcf.gz > snpeff_structural_variants.txt
 
 
 

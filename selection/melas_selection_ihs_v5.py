@@ -209,7 +209,7 @@ for chrom, length in chromosome_lengths.items():
 # Define the threshold
 import matplotlib.patches as mpatches
 
-threshold = 5
+threshold = 4
 
 # Set up the plot
 fig, ax = plt.subplots(figsize=(10, 6))
