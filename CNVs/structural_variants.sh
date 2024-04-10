@@ -1,7 +1,8 @@
 
-### Updated delly version ###
+## Analysis done here:
+## /mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/structural_variants
 
-## Trying with delly call ALL
+## Using delly call ALL
 
 # read the sample identifiers from all_samples.txt, process the .all.bcf files, in parallel using -P 10,
 # then convert this to a vcf and then convert it to a text file without the header lines for easy viewing.
@@ -128,3 +129,17 @@ gunzip map.fa.gz && bgzip map.fa && samtools faidx map.fa.gz
 #
 #bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%QUAL\t%FILTER\t%INFO/SVTYPE\t[%GT\t]\n' genes_merged_genotyped_structural_variants_sample_filt.site_filt.call_filt.ann.vcf.gz > structural_variants_snpeff.txt
 #
+
+## Looking for chromosomal inversions using compkaryo, which looks at SNPs
+
+# use the 'test' conda environment
+
+# works for '2La', '2Rj', '2Rb', '2Rc_col', '2Rc_gam', '2Rd', '2Ru'
+python /mnt/storage11/sophie/gitrepos/compkaryo/compkaryo/compkaryo.py 2L_only_2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz 2La -s compkaryo_samples.txt -o compkaryo_out_2La.txt --total
+
+python /mnt/storage11/sophie/gitrepos/compkaryo/compkaryo/compkaryo.py 2R_only_2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz 2Rb -s compkaryo_samples.txt -o compkaryo_out_2Rb.txt --total
+
+python /mnt/storage11/sophie/gitrepos/compkaryo/compkaryo/compkaryo.py 2R_only_2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz 2Rj -s compkaryo_samples.txt -o compkaryo_out_2Rj.txt --total
+python /mnt/storage11/sophie/gitrepos/compkaryo/compkaryo/compkaryo.py 2R_only_2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz 2Rc_gam -s compkaryo_samples.txt -o compkaryo_out_2Rc_gam.txt --total
+python /mnt/storage11/sophie/gitrepos/compkaryo/compkaryo/compkaryo.py 2R_only_2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz 2Rd -s compkaryo_samples.txt -o compkaryo_out_2Rd.txt --total
+python /mnt/storage11/sophie/gitrepos/compkaryo/compkaryo/compkaryo.py 2R_only_2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz 2Ru -s compkaryo_samples.txt -o compkaryo_out_2Ru.txt --total

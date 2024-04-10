@@ -119,4 +119,18 @@ print(f"Mean Tajima's D: {mean_td}")
 print(f"Standard deviation of Tajima's D: {std_td}")
 
 
+# %% Calculate mean and standard deviation of Tajima's D for star t of chromosome
+# First 1,000,000 bp, so first 50 windows of 20,000
+
+# Slice D array to get first 50 values, excluding any NaN values
+D_first_50_windows = D[:50
+valid_indices_50 = ~np.isnan(D_first_50_windows)
+filtered_td_values_50 = D_first_50_windows[valid_indices_50]
+
+# Calcualte mean and SD
+mean_td_first_50 = np.mean(filtered_td_values_50)
+std_td_first_50 = np.std(filtered_td_values_50)
+
+mean_td_first_50, std_td_first_50
+
 # %%

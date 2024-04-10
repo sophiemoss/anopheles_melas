@@ -6,40 +6,50 @@
 # -m2 is used in conjunction with -M2 to apply the minor-allele-based decomposition. 
 # This means that bcftools will decompose multi-allelic sites using the minor allele as the reference allele in the biallelic split.
 # here -v tells bcftools to only view SNPS, so indels are excluded
-bcftools query -l 2019_merged_melas.vcf.gz
 
-bcftools view -M2 -m2 -v snps 2019_merged_melas.vcf.gz -Oz -o bi_snps_2019_merged_melas.vcf.gz
+bcftools view -M2 -m2 -v snps gambiae_nov2022.2023_07_05.genotyped.vcf.gz -Oz -o bi_snps_gambiae_2022_bijagos.vcf.gz
+bcftools view -M2 -m2 -v snps melas_2019_plusglobal.2023_07_25.genotyped.vcf.gz -Oz -o bi_snps_melas_2019_bijagos.vcf.gz
 
 # tabix index the compressed VCF file, creates .vcf.gz.tbi
-tabix -p vcf bi_snps_2019_merged_melas.vcf.gz
+tabix -p vcf bi_snps_gambiae_2022_bijagos.vcf.gz
+tabix -p vcf bi_snps_melas_2019_bijagos.vcf.gz
 
 # filter out the contigs from the VCF file, note that to produce a properly bgzipped vcf file you need the -Oz flag
-# bcftools view bi_snps_2019_merged_melas.vcf.gz --regions 2L,2R,3L,3R,Mt,X,Y_unplaced | bcftools sort -Oz -o bi_snps_chr_2019_merged_melas.vcf.gzz
+
+bcftools view bi_snps_melas_2019_bijagos.vcf.gz --regions 2L,2R,3L,3R,Mt,X,Y_unplaced | bcftools sort -Oz -o bi_snps_chr_melas_2019_bijagos.vcf.gz
+bcftools view bi_snps_gambiae_2022_bijagos.vcf.gz --regions 2L,2R,3L,3R,Mt,X,Y_unplaced | bcftools sort -Oz -o bi_snps_chr_gambiae_2022_bijagos.vcf.gz
 
 # view the unique chromosome names
-#bcftools query -f '%CHROM\n' bi_snps_chr_gambiae_nov2022.2023_07_05.genotyped.vcf.gz | sort | uniq > unique_chromosomes_filtered.txt
-#tabix -p vcf bi_snps_chr_gambiae_nov2022.2023_07_05.genotyped.vcf.gz
+bcftools query -f '%CHROM\n' bi_snps_chr_melas_2019_bijagos.vcf.gz | sort | uniq > unique_chromosomes_melas_filtered.txt
+bcftools query -f '%CHROM\n' bi_snps_chr_gambiae_2022_bijagos.vcf.gz | sort | uniq > unique_chromosomes_gambiae_filtered.txt
+
+tabix -p vcf bi_snps_chr_melas_2019_bijagos.vcf.gz
+tabix -p vcf bi_snps_chr_gambiae_2022_bijagos.vcf.gz
 
 ########### FILTER 2: Filter samples to keep those with 40% of genome with > 10x coverage, and min-ac=1 so that all variants that remain are still variants after sample removal
 # I have identified samples that are above this threshold using my basic WGS stats
 # create file with samples to keep: sample_40_10.txt
 
-bcftools view -S samples_40_10.txt bi_snps_2019_merged_melas.vcf.gz --min-ac=1 -Oz -o miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+bcftools view -S melas_samples_40_10.txt bi_snps_chr_melas_2019_bijagos.vcf.gz --min-ac=1 -Oz -o miss40_mac_bi_snps_chr_melas_2019_bijagos.vcf.gz
+bcftools view -S gambiae_samples_40_10.txt bi_snps_chr_gambiae_2022_bijagos.vcf.gz --min-ac=1 -Oz -o miss40_mac_bi_snps_chr_gambiae_2022_bijagos.vcf.gz
 
-tabix -p vcf miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+tabix -p vcf miss40_mac_bi_snps_chr_melas_2019_bijagos.vcf.gz
+tabix -p vcf miss40_mac_bi_snps_chr_gambiae_2022_bijagos.vcf.gz
 
-## count variants, gambiae: 21679588
-preVARIANTS=$(bcftools view -H miss40_mac_bi_snps_2019_merged_melas.vcf.gz | wc -l)
-echo "The number of variants in the vcf before gatk hard filtering is $preVARIANTS"
+### STEP 2.5 - Combine the two VCF files together
+
+bcftools merge miss40_mac_bi_snps_chr_melas_2019_bijagos.vcf.gz miss40_mac_bi_snps_chr_gambiae_2022_bijagos.vcf.gz -Oz -o miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
+tabix -p vcf miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
+
 
 ########### FILTER 3: for GATK standard filtering
 # GATK filter recommendations: https://gatk.broadinstitute.org/hc/en-us/articles/360035890471-Hard-filtering-germline-short-variants
 # excellent explanation of this hard filtering and additional soft filtering
 # https://evomics.org/learning/population-and-speciation-genomics/2020-population-and-speciation-genomics/first-steps-in-genomic-data-analysis/#ex3.4
 
-gatk VariantFiltration \
--R /mnt/storage11/sophie/reference_genomes/Amelas_CM1001059_vectorbase/VectorBase-62_AmelasCM1001059_A_Genome.fasta \
--V miss40_mac_bi_snps_2019_merged_melas.vcf.gz \
+gatk --java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' VariantFiltration \
+-R /mnt/storage11/sophie/reference_genomes/A_gam_P4_ensembl/Anopheles_gambiae.AgamP4.dna.toplevel.fa \
+-V miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz \
 -filter "QD < 5.0" --filter-name "QD5" \
 -filter "QUAL < 30.0" --filter-name "QUAL30" \
 -filter "SOR > 3.0" --filter-name "SOR3" \
@@ -47,18 +57,21 @@ gatk VariantFiltration \
 -filter "MQ < 40.0" --filter-name "MQ40" \
 -filter "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
 -filter "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
--O gatk_tagged_miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+--output gatk_tagged_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
 ## note there is a repeated warning here JEXL engine undefined variable, not a problem
 ## because this is coming from where there are positions with no coverage
 ## https://gatk.broadinstitute.org/hc/en-us/community/posts/4408733963803-GATK-Variant-Filtration-undefined-variable
 
 ## remove the SNPs that have been tagged with the above filters
-bcftools view -f 'PASS' gatk_tagged_miss40_mac_bi_snps_2019_merged_melas.vcf.gz -Oz -o gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+bcftools view -f 'PASS' gatk_tagged_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz -Oz -o gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
+tabix -p vcf gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
-## count variants, gambiae: 20037931, melas: 8951325
-VARIANTS=$(bcftools view -H gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz | wc -l)
+## count variants: 29983301
+VARIANTS=$(bcftools view -H gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz | wc -l)
 echo "The number of variants in the vcf after gatk hard filtering is $VARIANTS" 
+## 
+
 
 ## ADDITIONAL SOFT FILTERING
 
@@ -75,16 +88,16 @@ echo "The number of variants in the vcf after gatk hard filtering is $VARIANTS"
 ## but only set the respective genotypes to missing (./.) by using the bcftools filter -S . command.
 ## Here we use the logical operator “|” instead of “||”, since using “||” would mean that every genotype at a variant site 
 ## is set to missing, even if only one genotype doesn’t fulfill the threshold
-bcftools filter -S . -e 'FMT/DP<5 | FMT/GQ<20' -O z -o DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+bcftools filter -S . -e 'FMT/DP<5 | FMT/GQ<20' -O z -o DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
 ## check this, the genotype here should have been set to missing ./. as we are filtering for depth below 5
 # bcftools query -i 'FMT/DP<5' -f '[GT=%GT\tDP=%DP\tGQ=%GQ\t]\n' DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz | less -S
 
 ## happy? index vcf
-tabix -p vcf DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+tabix -p vcf DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
-## count variants, gambiae: 20037931 melas: 8951325. Same number as all are filters above just set to missing, so genotypes removed but site still in VCF.
-countVARIANTS=$(bcftools view -H DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz | wc -l)
+## count variants:
+countVARIANTS=$(bcftools view -H DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz | wc -l)
 echo "The number of variants after filtering FMT/DP<5 | FMT/GQ<20 is $countVARIANTS"
 
 ########### FILTER 5: exclude -e all sites at which no alternative alleles are called for any of the samples
@@ -183,17 +196,3 @@ tabix -p vcf F_MISSING_MAF_bijagos_only_final_filteredvcf_bu1003_SRR567658_F6_re
 #conda activate beagle
 beagle -Xmx500g gt=F_MISSING_MAF_bijagos_only_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz out=bijagos_only_melas_phased
 
-##### 22nd March 2024 #####
-
-## make a vcf for the compkaryo of just 2R and one of just 2L
-# make from phased vcf with all samples
-
-bcftools view 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz --regions 2L > 2L_only_2019melasglobal_finalfiltered_gambiaealigned_phased.vcf
-
-bcftools view 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz --regions 2R > 2R_only_2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz
-
-# bgzip
-# tabix
-
-# to check the chromosome names
-# zgrep -v "^#" bijagos_only_melas_phased.vcf.gz | cut -f1 | sort | uniq
