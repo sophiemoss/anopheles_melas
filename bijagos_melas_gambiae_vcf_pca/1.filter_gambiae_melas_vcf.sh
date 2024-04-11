@@ -96,18 +96,18 @@ bcftools filter -S . -e 'FMT/DP<5 | FMT/GQ<20' -O z -o DP5_GQ20_gatk_filtered_mi
 ## happy? index vcf
 tabix -p vcf DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
-## count variants:
+## count variants: 29983301
 countVARIANTS=$(bcftools view -H DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz | wc -l)
 echo "The number of variants after filtering FMT/DP<5 | FMT/GQ<20 is $countVARIANTS"
 
 ########### FILTER 5: exclude -e all sites at which no alternative alleles are called for any of the samples
-bcftools filter -e 'AC==0' DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz -O z -o AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+bcftools filter -e 'AC==0' DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz -O z -o AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
-tabix -p vcf AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+tabix -p vcf AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
-## count variants, gambiae: 19656287 melas: 8901793
+## count variants, gambiae: 29250505
 
-countVARIANTSagain=$(bcftools view -H AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz | wc -l)
+countVARIANTSagain=$(bcftools view -H AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz | wc -l)
 echo "The number of variants after filtering to exclude any non-alternate sites is $countVARIANTSagain"
 
 ########### FILTER 6
@@ -120,24 +120,33 @@ echo "The number of variants after filtering to exclude any non-alternate sites 
 ## This would remove alleles where the minor allele occurs 0.88 times or less, which for this particular dataset means a 
 ## variant would be removed if there are no minor alleles? So if there is no alternate allele the variant is removed.
 
-bcftools filter -e 'F_MISSING > 0.2 || MAF <= 0.01' -O z -o F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+bcftools filter -e 'F_MISSING > 0.2 || MAF <= 0.01' -O z -o F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
 # check this has worked. The minor allele count should be 1 or above in this dataset.
-bcftools query F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz -f'%AC\n' | sort -g | head
+bcftools query F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz -f'%AC\n' | sort -g | head
 
 # count variants, gambiae: 16452859 melas: 8489243
-variantcount=$(bcftools view -H F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz | wc -l)
+variantcount=$(bcftools view -H F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz | wc -l)
 echo "the number of variants after filtering for F_MISSING and MAF is $variantcount"
 
-tabix -p vcf F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz
+tabix -p vcf F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz
 
 # Filtering complete!
 
-# removed two samples and then remade vcf, and re-did the above filter (F6)
+# removed two samples and then remade vcf
+bcftools view -s ^SRR567658,bu1003_Combined F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_chr_gambiae_2022_melas_2019_bijagos.vcf.gz -Oz -o final_filteredvcf_bu1003_SRR567658_F6_removed_melas2019_gambiae2022.vcf.gz
+tabix -p vcf final_filteredvcf_bu1003_SRR567658_F6_removed_melas2019_gambiae2022.vcf.gz
 
-tabix -p vcf final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz
+#redo filter 6
+bcftools filter -e 'F_MISSING > 0.2 || MAF <= 0.01' -O z -o final_filteredvcf_bu1003_SRR567658_F6_redone_removed_melas2019_gambiae2022.vcf.gz final_filteredvcf_bu1003_SRR567658_F6_removed_melas2019_gambiae2022.vcf.gz
 
-bcftools view final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz  | grep -v "^#" | wc -l
+tabix -p vcf final_filteredvcf_bu1003_SRR567658_F6_redone_removed_melas2019_gambiae2022.vcf.gz
+
+
+countVARIANTSagain=$(bcftools view -H final_filteredvcf_bu1003_SRR567658_F6_redone_removed_melas2019_gambiae2022.vcf.gz | wc -l)
+echo "The number of variants after removing the two outlier samples and redoing filter 6 is $countVARIANTSagain"
+### variants: 3412605
+
 
 ########## PHASE VCF FILE ###########
 
@@ -147,18 +156,18 @@ bcftools view final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019
 
 # use beagle conda environment. mamba install beagle.
 conda activate beagle
-beagle -Xmx500g gt=final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz out=2019melasglobal_finalfiltered_gambiaealigned_phased
+beagle -Xmx500g gt=final_filteredvcf_bu1003_SRR567658_F6_redone_removed_melas2019_gambiae2022.vcf.gz out=bijagos_gambiae2022_melas2019_combined_phased
 
-tabix -p vcf 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz
+tabix -p vcf bijagos_gambiae2022_melas2019_combined_phased.vcf.gz
 
-bcftools query -l 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz
-bcftools index --stats 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz | cut -f1 | uniq
+bcftools query -l bijagos_gambiae2022_melas2019_combined_phased.vcf.gz
+bcftools index --stats bijagos_gambiae2022_melas2019_combined_phased.vcf.gz | cut -f1 | uniq
 
 ## Check the number of SNPs in the phased and unphased VCF files for one chromosome, these should be the same
-# unphased melas SNPs in chr 2L 1725502
-bcftools query -f '%CHROM\t%POS\n' final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.vcf.gz | awk '$1=="2L"' | wc -l
-# phased melas SNPs in chr 2L 1725502
-bcftools query -f '%CHROM\t%POS\n' 2019melasglobal_finalfiltered_gambiaealigned_phased.vcf.gz | awk '$1=="2L"' | wc -l
+# unphased melas SNPs in chr 2L:
+bcftools query -f '%CHROM\t%POS\n' final_filteredvcf_bu1003_SRR567658_F6_redone_removed_melas2019_gambiae2022.vcf.gz | awk '$1=="2L"' | wc -l
+# phased melas SNPs in chr 2L: 1725502
+bcftools query -f '%CHROM\t%POS\n' bijagos_gambiae2022_melas2019_combined_phased.vcf.gz | awk '$1=="2L"' | wc -l
 
 # This final vcf contains these chromosome names, with X and Y been renamed.
 2L
