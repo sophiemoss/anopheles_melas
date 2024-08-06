@@ -8,7 +8,7 @@ library(scales)
 
 workdir <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/pca" # Working directory with plink files
 prefix <- "3L_only_melas_plusglobal" # Prefix for plink files
-metadata <- "metadata_melasplusglobal.csv" # File path to metadata
+metadata <- "metadata_melasplusglobal_clusters.csv" # File path to metadata
 
 calc_variance_explained <- function(pc_points) {
     vars <- round(pc_points$eig / sum(pc_points$eig) * 100, 1)

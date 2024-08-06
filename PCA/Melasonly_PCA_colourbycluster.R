@@ -1,3 +1,5 @@
+# Run this as an R script
+
 library(showtext)
 library(dplyr)
 library(ggplot2)
@@ -6,9 +8,9 @@ showtext_auto()
 library(viridis)
 library(scales)
 
-workdir <- "/mnt/storage11/sophie/bijagos_mosq_wgs/bijagos_melas_gambiae_vcf/pca_plink_files" # Working directory with plink files
-prefix <- "X_only_bijagos_gambiae_melasplusglobal" # Prefix for plink files
-metadata <- "metadata_gambiae_melas.csv" # File path to metadata
+workdir <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/pca" # Working directory with plink files
+prefix <- "mito_only_melas_plusglobal" # Prefix for plink files
+metadata <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/pca/metadata_melasplusglobal_clusters_v2.csv" # File path to metadata
 
 calc_variance_explained <- function(pc_points) {
     vars <- round(pc_points$eig / sum(pc_points$eig) * 100, 1)
@@ -44,6 +46,7 @@ df$sample <- rownames(df)  # Set rownames as the 'sample' column
 df$country <- gsub("_", " ", desc$country)
 df$island <- gsub("_", " ", desc$island)
 df$species <- gsub("_", " ", desc$species)
+df$Population <- gsub("_", " ", desc$Population)
 
 # Correctly reorder the dataframe to make 'sample' the first column
 df <- df[, c("sample", setdiff(names(df), "sample"))]
@@ -52,24 +55,23 @@ df <- df[, c("sample", setdiff(names(df), "sample"))]
 # (assuming all PCA columns currently start with 'V', adjust if different)
 colnames(df)[-c(1, ncol(df)-1, ncol(df))] <- gsub("^V", "PC", colnames(df)[-c(1, ncol(df)-1, ncol(df))])
 
-color_by <- "country" # specify if colored by region or country
+color_by <- "Population" # specify if colored by region or country
 
-# Plot PCA old cameroon colour #7678ed
-#
-my_colours <- c("Cameroon" = "#E74C3C", "Guinea-Bissau" = "#3d348b", "The Gambia" = "#f7b801")
-my_shapes <- c("anopheles melas" = 16 , "anopheles gambiae ss" = 4)
+## changing colour scheme to be with viridis, with color_by being a discrete variable
 
-png("X_only_gambiae_melas_labelled_countryspecies.png") 
-ggplot(data = df, aes(x = PC1, y = PC2, color = !!sym(color_by), shape = species)) +
-    geom_point() +
-    geom_text(aes(label = sample), vjust = 1.5, size = 2, angle = 20, check_overlap = TRUE) +
-    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "Chromosome X") +
-    scale_color_manual(values = my_colours) + 
-    scale_shape_manual(values = my_shapes) + 
+my_colours <- c("An.melas Cameroon" = "#7678ed", "An.melas The Gambia" = "darkorange2", 
+                "An.melas Bijagos Group A" = "deeppink", "An.melas Bijagos Group B" = "#f0e442")
+
+# plot
+png("mito_only_PCA_coloured_by_cluster.png") 
+ggplot(data = df, aes(x = PC1, y = PC2, color = !!sym(color_by))) +
+    geom_point(size = 3) +
+    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "Mitochondria") +
+    scale_color_manual(values = my_colours) +
+    scale_x_continuous(labels = label_number()) +
+    scale_y_continuous(labels = label_number()) +
     theme_classic() +
-    theme(legend.position = "bottom", 
-          legend.box = "vertical", # Explicitly set legends to stack vertically
-          plot.title = element_text(hjust = 0.5),
-          legend.box.margin = margin(0, 0, 0, 0)) # Adjust legend box margins if needed
+    theme(legend.position = "bottomleft", legend.direction = "vertical", plot.title = element_text(hjust = 0.5),
+    plot.margin = margin(t = 10, r = 40, b = 30, l = 10, unit = "pt"))
 dev.off()
 #
