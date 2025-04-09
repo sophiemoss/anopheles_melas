@@ -1,0 +1,15 @@
+# 9th August 2024
+# 1. split vcf into samples_filtered_bijagos.vcf.gz and samples_filtered_cameroon.vcf.gz
+# 2. used bcftools filter -e "AC==0" samples_filtered_cameroon.vcf.gz -O z -o samples_filtered_cameroon_AC0.vcf.gz 
+# on both vcf to exclude all sites at which no alternative alleles are called for any of the samples
+# checked this worked with: bcftools query F_MISSING_MAF_AC0_DP5_GQ20_gatk_filtered_miss40_mac_bi_snps_2019_merged_melas.vcf.gz -f'%AC\n' | sort -g | head
+# used bcftools isec to check how many variants are in both populations of samples
+# bcftools isec  -p cameroon_vs_gambia samples_filtered_cameroon.vcf.gz samples_filtered_bijagos.vcf.gz
+# check number of snps in each vcf in the cameroon_vs_gambia directory, and the README.txt file tells us what each file means
+
+# adding additional filter for reviewer of MAF 2% to remove singletons
+# the remake the histogram to see if it has removed singletons
+# then remake the PCAS and compare them
+
+bcftools filter -e 'MAF <= 0.02' final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz -O z -o MAF0.02_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz
+bcftools query MAF0.02_final_filteredvcf_bu1003_SRR567658_F6_removed_renamedchr_melas2019plusglobal.ann.vcf.gz -f'%AC\n' | sort -g | head

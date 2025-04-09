@@ -330,11 +330,10 @@ chromosome_colours = {
 }
 
 # Plotting
-
 threshold = 4
 
 # Set up the plot
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, ax = plt.subplots(figsize=(10, 6), dpi=600)
 
 # Define colors for each chromosome (for illustration)
 chromosome_colours = {
@@ -380,6 +379,7 @@ ax.set_xlabel('Genomic Position (bp)')
 ax.set_ylabel('$- log10 pvalue |iHS|$')
 ax.axhline(y=threshold, color='black', linestyle='--')
 plt.tight_layout()
+plt.savefig('ihs_pvalues_plot_600dpi.png')
 plt.show()
 
 print("iHS p-values plotted with all chromosomes")

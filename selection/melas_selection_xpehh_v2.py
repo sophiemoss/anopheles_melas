@@ -143,6 +143,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 
+# Set up the plot
+fig, ax = plt.subplots(figsize=(10, 6))
+
 # Define colors for each chromosome (for illustration)
 chromosome_colours = {
     '2L': '#3d348b', '2R': '#f18701', '3L': '#f7b801', '3R': '#7678ed', 'anop_mito': '#f35b04', 'anop_X': '#119DA4'
@@ -151,9 +154,6 @@ chromosome_colours = {
 # Set threshold
 bijagos_threshold = 5
 cameroon_threshold = -5
-
-# Set up the plot
-fig, ax = plt.subplots(figsize=(10, 6))
 
 # Create a list to hold the legend patches
 legend_patches = []
@@ -201,7 +201,7 @@ ax.legend(handles=legend_patches, title='Chromosome', bbox_to_anchor=(1.05, 1), 
 ax.set_xlabel('Genomic Position (bp)')
 ax.set_ylabel('XP-EHH')
 plt.tight_layout()
-plt.show()
+plt.savefig('xpehh_plot_600ppi.png', dpi=600)  # Save at 600 PPI
 
 # %% list all positions with xpehh value over or below a certain threshold
 

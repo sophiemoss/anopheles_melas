@@ -63,15 +63,20 @@ my_colours <- c("An.melas Cameroon" = "#7678ed", "An.melas The Gambia" = "darkor
                 "An.melas Bijagos Group A" = "deeppink", "An.melas Bijagos Group B" = "#f0e442")
 
 # plot
-png("mito_only_PCA_coloured_by_cluster_dpi_600.png") 
+png("mito_only_PCA_coloured_by_cluster_dpi_600_larger_text.png", width = 7000, height = 7000, res = 600) 
 ggplot(data = df, aes(x = PC1, y = PC2, color = !!sym(color_by))) +
-    geom_point(size = 3) +
+    geom_point(size = 5) +
     labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "Mitochondria") +
     scale_color_manual(values = my_colours) +
     scale_x_continuous(labels = label_number()) +
     scale_y_continuous(labels = label_number()) +
-    theme_classic() +
-    theme(legend.position = "bottomleft", legend.direction = "vertical", plot.title = element_text(hjust = 0.5),
-    plot.margin = margin(t = 10, r = 40, b = 30, l = 10, unit = "pt"))
+    theme_classic(base_size = 120) +
+    theme(legend.position = "bottomleft", 
+    legend.direction = "vertical", 
+    plot.title = element_text(hjust = 0.5),
+    plot.margin = margin(t = 10, r = 40, b = 30, l = 10, unit = "pt"),
+    legend.text = element_text(size = 120),
+    axis.line = element_line(size = 0.5),
+    axis.ticks = element_line(size = 0.5))
 dev.off()
 #

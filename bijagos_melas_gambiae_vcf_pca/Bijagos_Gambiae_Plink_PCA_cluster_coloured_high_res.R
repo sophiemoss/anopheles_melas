@@ -84,18 +84,32 @@ my_colours <- c("An.melas.Cameroon" = "#7678ed", "An.melas.The Gambia" = "darkor
                 "An.melas.groupA" = "deeppink", "An.melas.groupB" = "#f0e442",
                 "An.gambiae" = "#009e73")
 
-# The plot command
-png("mito_only_gambiae_melas_clusters.png", width = 800, height = 800) 
+
+# Define the file name and specify 600 PPI resolution
+png("larger_points_mito_only_gambiae_melas_clusters_600ppi.png", width = 7000, height = 7000, res = 600)
+
 ggplot(data = df, aes(x = PC1, y = PC2, color = cluster)) + 
-    geom_point() +
+    geom_point(size = 3) +
     labs(x = paste0("PC1", " (", vars["PC1"], "%)"), 
          y = paste0("PC2", " (", vars["PC2"], "%)"), 
          title = "Mitochondria") +
-    scale_color_manual(values = my_colours) +  # Wrap legend text
-    theme_classic() +
-    theme(legend.position = "bottom", 
+    scale_color_manual(values = my_colours,
+    labels = c(
+            expression(italic("Anopheles melas") ~ " Cameroon"),
+            expression(italic("Anopheles melas") ~ " The Gambia"),
+            expression(italic("Anopheles melas") ~ " Group A"),
+            expression(italic("Anopheles melas") ~ " Group B"),
+            expression(italic("Anopheles gambiae"))
+        ),
+        name = "Cluster"
+    ) +
+    coord_fixed(ratio = 1) +
+    theme_classic(base_size = 80) +
+    theme(legend.position = "right", 
           legend.direction = "vertical",  # Change legend orientation
           plot.title = element_text(hjust = 0.5),
-          plot.margin = margin(t = 10, r = 80, b = 80, l = 40, unit = "pt"),  # Increase the bottom margin
-          legend.text = element_text(size = 8))
+          plot.margin = margin(t = 1, r = 1, b = 1, l = 1, unit = "pt"),
+          legend.text = element_text(size = 80),
+          axis.line = element_line(size = 0.5),
+          axis.ticks = element_line(size = 0.5))
 dev.off()

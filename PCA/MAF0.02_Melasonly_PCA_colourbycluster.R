@@ -8,8 +8,8 @@ showtext_auto()
 library(viridis)
 library(scales)
 
-workdir <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/pca" # Working directory with plink files
-prefix <- "mito_only_melas_plusglobal" # Prefix for plink files
+workdir <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/reviewer_filtering_MAF_0.02" # Working directory with plink files
+prefix <- "X_only_melas_plusglobal" # Prefix for plink files
 metadata <- "/mnt/storage11/sophie/bijagos_mosq_wgs/2019_melas_fq2vcf_gambiae_aligned/genomics_database_melas2019plusglobal/genomics_database_melas2019plusglobal_vcf/melas_2019_plusglobal_filtering/pca/metadata_melasplusglobal_clusters_v2.csv" # File path to metadata
 
 calc_variance_explained <- function(pc_points) {
@@ -63,10 +63,10 @@ my_colours <- c("An.melas Cameroon" = "#7678ed", "An.melas The Gambia" = "darkor
                 "An.melas Bijagos Group A" = "deeppink", "An.melas Bijagos Group B" = "#f0e442")
 
 # plot
-png("mito_only_PCA_coloured_by_cluster_dpi_600.png") 
+png("MAF_0.02_X_only_PCA_coloured_by_cluster.png") 
 ggplot(data = df, aes(x = PC1, y = PC2, color = !!sym(color_by))) +
     geom_point(size = 3) +
-    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "Mitochondria") +
+    labs(x = paste0("PC1", " (", vars["PC1"], "%)"), y = paste0("PC2", " (", vars["PC2"], "%)"), title = "Chromosome X") +
     scale_color_manual(values = my_colours) +
     scale_x_continuous(labels = label_number()) +
     scale_y_continuous(labels = label_number()) +
